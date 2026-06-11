@@ -1,3 +1,7 @@
+// providers
+import { SessionWrapper } from "@/providers/SessionWrapper";
+import { QueryWrapper } from "@/providers/QueryWrapper";
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -25,9 +29,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="cupcake"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <SessionWrapper>
+          <QueryWrapper>{children}</QueryWrapper>
+        </SessionWrapper>
+      </body>
     </html>
   );
 }
