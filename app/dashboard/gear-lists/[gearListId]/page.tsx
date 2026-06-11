@@ -1,6 +1,7 @@
 "use client";
 
 import { Loading } from "@/components/Loading";
+import { parseItemWeight } from "@/lib/domain/models/item";
 import {
   GearListItemStatus,
   STATUS_SORT_ORDER,
@@ -211,7 +212,7 @@ export default function GearList() {
             status: entry.status ?? "unpacked",
             name: item.name ?? "Unnamed item",
             category: item.category,
-            weight: item.weight,
+            weight: parseItemWeight(item.weight),
           };
         },
       )
