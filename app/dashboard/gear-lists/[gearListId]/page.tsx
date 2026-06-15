@@ -165,15 +165,8 @@ export default function GearList() {
   const [sortMode, setSortMode] = useState("status");
 
   // get gear list
-  const { data: gearLists, isLoading: gearListsLoading } = useData(
-    "/api/gear-lists",
-    {
-      includeDefaults: true,
-      gearListIds: [gearListId],
-    },
-  );
-  const gearList = gearLists?.find(
-    (list: { id: string }) => list.id === gearListId,
+  const { data: gearList, isLoading: gearListLoading } = useData(
+    `/api/gear-lists/${gearListId}`,
   );
 
   // if gear list is being shared, clone and add to users gear lists
@@ -249,27 +242,6 @@ export default function GearList() {
   }, [gearListItems, items, sortMode]);
 
   // functions to update status when changed by user
-  const updateStatus = useMutation({
-    mutationFn: async ({
-      itemId,
-      status,
-    }: {
-      itemId: string;
-      status: GearListItemStatus;
-    }) => {
-      const res = await fetch(`/api/gear-lists/${gearListId}/items/${itemId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error("Failed to update item status");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/gear-lists"] });
-    },
-    onSettled: () => {},
-  });
   const handleStatusChange = (
     itemId: string,
     currentStatus: GearListItemStatus,
@@ -278,6 +250,47 @@ export default function GearList() {
     const status = currentStatus === nextStatus ? "unpacked" : nextStatus;
     updateStatus.mutate({ itemId, status });
   };
+  const updateStatus = useMutation({
+    mutationFn: async ({ itemId, status }) => {
+      const res = await fetch(`/api/gear-lists/${gearListId}/items/${itemId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update item status");
+      }
+      return { itemId, status };
+    },
+    onMutate: async ({ itemId, status }) => {
+      console.log(
+        queryClient
+          .getQueryCache()
+          .getAll()
+          .map((q) => q.queryKey),
+      );
+      queryClient.setQueryData(
+        [`/api/gear-lists/${gearListId}`, undefined],
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((item: any) =>
+              item.itemId === itemId ? { ...item, status } : item,
+            ),
+          };
+        },
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries([
+        `/api/gear-lists/${gearListId}`,
+        undefined,
+      ]);
+    },
+  });
 
   // reset status
   const resetStatus = function () {
@@ -289,9 +302,11 @@ export default function GearList() {
   // initial gear list state for making edits
   const [initialGearList, setInitialGearList] = useState(null);
 
-  if (gearListsLoading || itemsLoading) return <Loading />;
+  if (gearListLoading || itemsLoading) return <Loading />;
   if (!gearList) return <Loading />;
   if (gearList?.isDefault) return <Loading />;
+
+  console.log("gearList", gearList);
 
   return (
     <div className="flex h-full w-full min-h-0 flex-col">

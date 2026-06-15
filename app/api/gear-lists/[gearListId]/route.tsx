@@ -7,6 +7,17 @@ const gearListRepo = new MongoGearListRepo();
 
 type RouteParams = { params: Promise<{ gearListId: string }> };
 
+export async function GET(req: Request, { params }: RouteParams) {
+  const authResult = await requireUser();
+  if ("response" in authResult) return authResult.response;
+  const { gearListId } = await params;
+  const existing = await gearListRepo.findById(gearListId);
+  if (!existing) {
+    return NextResponse.json({ message: "Not found" }, { status: 404 });
+  }
+  return NextResponse.json(existing);
+}
+
 export async function PUT(req: Request, { params }: RouteParams) {
   const authResult = await requireUser();
   if ("response" in authResult) return authResult.response;

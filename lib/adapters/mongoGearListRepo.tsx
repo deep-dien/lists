@@ -95,17 +95,13 @@ class MongoGearListRepo implements GearListRepo {
     return this.findById(gearListId);
   }
 
-  async updateItem(
-    gearListId: string,
-    item: GearListItem,
-  ): Promise<GearList | null> {
+  async updateItem(gearListId: string, item: GearListItem): Promise<boolean> {
     const collection = await this.collection();
     const setPayload: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(item)) {
       if (key === "itemId") continue;
       setPayload[`items.$[elem].${key}`] = value;
     }
-
     const updateResult = await collection.updateOne(
       {
         _id: new ObjectId(gearListId),
@@ -119,19 +115,7 @@ class MongoGearListRepo implements GearListRepo {
         arrayFilters: [{ "elem.itemId": item.itemId }],
       },
     );
-
-    if (updateResult.matchedCount === 0) {
-      const pushResult = await collection.updateOne(
-        { _id: new ObjectId(gearListId) },
-        {
-          $push: { items: item },
-          $currentDate: { updatedAt: true },
-        },
-      );
-      if (!pushResult.modifiedCount) return null;
-    }
-
-    return this.findById(gearListId);
+    return updateResult.modifiedCount > 0;
   }
 
   async deleteItem(gearListId: string, itemId: string): Promise<RepoResult> {

@@ -45,6 +45,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
       { status: 500 },
     );
   }
+
   return NextResponse.json(updated);
 }
 
