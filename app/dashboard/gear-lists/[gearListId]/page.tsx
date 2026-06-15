@@ -120,7 +120,7 @@ export function GearListItemsSmall({ itemsGrouped, handleStatusChange }) {
       {itemsGrouped.map(([group, itemsGroup]) => {
         return (
           <div key={group}>
-            <div className="capitalize">{group}</div>
+            <div className="capitalize font-bold divider">{group}</div>
             <div className="flex flex-col gap-1">
               {itemsGroup.map((item) => {
                 return (
@@ -150,7 +150,7 @@ export function GearListItemsLarge({ itemsGrouped, handleStatusChange }) {
             key={group}
             className="flex flex-shrink-0 min-h-0 h-full w-fit flex-col gap-2"
           >
-            <div className="capitalize">{group}</div>
+            <div className="capitalize font-bold">{group}</div>
             <div className="flex flex-col gap-2">
               {itemsGrouped.map((item) => (
                 <Item
@@ -259,7 +259,7 @@ export default function GearList() {
           const leaveB = Number(
             itemsB.every((i) => ["leave", "packed"].includes(i.status)),
           );
-          if (leaveA !== leaveB) return leftA - leftB;
+          if (leaveA !== leaveB) return leaveA - leaveB;
           return 0;
         });
     }
@@ -378,10 +378,9 @@ export default function GearList() {
             </div>
           </div>
         </div>
-
-        <div className="divider p-0 m-0"></div>
       </div>
 
+      {/* divider */}
       <div className="divider m-0 m-0"></div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

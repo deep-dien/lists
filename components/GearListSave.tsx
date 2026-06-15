@@ -150,12 +150,16 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
 
   // search
   const [search, setSearch] = useState("");
-  const itemsFiltered = itemsGrouped.map(([category, itemsCategory]) => {
-    const itemsFilter = itemsCategory.filter((item) =>
-      item.name.toLowerCase().includes(search.toLowerCase()),
-    );
-    return [category, itemsFilter];
-  });
+  const itemsFiltered = itemsGrouped
+    .map(([category, itemsCategory]) => {
+      const itemsFilter = itemsCategory.filter((item) =>
+        item.name.toLowerCase().includes(search.toLowerCase()),
+      );
+      return [category, itemsFilter];
+    })
+    .filter(([category, itemsFilter]) => {
+      return itemsFilter?.length;
+    });
 
   // new item
   const [initialItem, setInitialItem] = useState(null);
@@ -188,7 +192,9 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
         {itemsFiltered.map(([category, itemsCategory]) => {
           return (
             <div key={category} className="gap-1">
-              <div className="font-bold capitalize flex">{category}</div>
+              <div className="divider font-bold capitalize flex">
+                {category}
+              </div>
               <ItemsList
                 items={itemsCategory}
                 saveGearList={saveGearList}
