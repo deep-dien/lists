@@ -11,9 +11,11 @@ export default function SignInPage() {
   const [status, setStatus] = useState("");
 
   const searchParams = useSearchParams();
-  const tripId = searchParams.get("tripId");
+  const gearListId = searchParams.get("gearListId");
 
-  const callbackUrl = tripId ? `/dashboard/${tripId}` : "/dashboard";
+  const callbackUrl = gearListId
+    ? `/dashboard/gear-lists/${gearListId}`
+    : "/dashboard/gear-lists";
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();

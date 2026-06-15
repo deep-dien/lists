@@ -11,7 +11,6 @@ export async function GET(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-
   const { searchParams } = new URL(req.url);
   const itemIds = searchParams.get("itemIds")?.split(",").filter(Boolean);
   const includeDefaults = searchParams.get("includeDefaults") === "true";
@@ -22,19 +21,20 @@ export async function GET(req: Request) {
   return NextResponse.json(items);
 }
 
-export async function POST(req: Request) {
+export async function PUT(req: Request) {
   const authResult = await requireUser();
   if ("response" in authResult) return authResult.response;
-
   const body = (await req.json()) as Partial<Item>;
-  const item = await itemRepo.create({
+  const item = await itemRepo.upsert({
     ...body,
-    userId: authResult.user.id,
-    isDefault: false,
+    // userId: authResult.user.id,
+    isDefault: true,
   });
-
   if (!item) {
-    return NextResponse.json({ message: "Failed to create item" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to upsert item" },
+      { status: 500 },
+    );
   }
   return NextResponse.json(item, { status: 201 });
 }

@@ -76,50 +76,43 @@ class MongoItemRepo implements ItemRepo {
     return docs.map((doc) => this.docToItem(doc));
   }
 
-  async create(item: Partial<Item>): Promise<Item | null> {
+  async upsert(item: Partial<Item>): Promise<Item | null> {
     const collection = await this.collection();
-    const result = await collection.insertOne({
-      _id: item.id ? new ObjectId(item.id) : new ObjectId(),
-      userId: item.userId,
-      name: item.name,
-      description: item.description,
-      weight: item.weight,
-      category: item.category,
-      isDefault: item.isDefault,
-    });
-    if (!result.acknowledged) return null;
-    return new Item({
-      id: result.insertedId.toString(),
-      userId: item.userId,
-      name: item.name,
-      description: item.description,
-      weight: item.weight,
-      category: item.category,
-      isDefault: item.isDefault,
-    });
-  }
-
-  async update(item: Item): Promise<Item | null> {
-    if (!item.id) return null;
-
-    const collection = await this.collection();
-    const setPayload: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(item)) {
-      if (key === "id") continue;
-      if (value !== undefined) setPayload[key] = value;
+    // no id -> create
+    if (!item.id) {
+      const collection = await this.collection();
+      const result = await collection.insertOne({
+        _id: new ObjectId(),
+        userId: item.userId,
+        name: item.name,
+        description: item.description,
+        weight: item.weight,
+        category: item.category,
+        isDefault: item.isDefault,
+      });
+      if (!result.acknowledged) return null;
+      return this.docToItem({ _id: result.insertedId, ...result });
     }
-
-    const result = await collection.updateOne(
-      { _id: new ObjectId(item.id) },
+    const updateDoc = {
+      ...item,
+      updatedAt: new Date(),
+    };
+    delete updateDoc.id;
+    const result = await collection.findOneAndUpdate(
       {
-        $set: setPayload,
-        $currentDate: { updatedAt: true },
+        _id: new ObjectId(item.id),
+        userId: item.userId,
+      },
+      {
+        $set: updateDoc,
+      },
+      {
+        upsert: true,
+        returnDocument: "after",
       },
     );
-    if (!result.matchedCount) return null;
-
-    const updated = await this.findByIds([item.id]);
-    return updated[0] ?? null;
+    if (!result) return null;
+    return this.docToItem(result);
   }
 
   async delete(id: string): Promise<RepoResult> {

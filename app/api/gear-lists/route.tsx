@@ -11,14 +11,12 @@ export async function GET(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-
   const { searchParams } = new URL(req.url);
   const gearListIds = searchParams
     .get("gearListIds")
     ?.split(",")
     .filter(Boolean);
   const includeDefaults = searchParams.get("includeDefaults") === "true";
-
   const gearLists = await gearListRepo.findForUser(session.user.id, {
     gearListIds,
     includeDefaults,
@@ -26,19 +24,15 @@ export async function GET(req: Request) {
   return NextResponse.json(gearLists);
 }
 
-export async function POST(req: Request) {
+export async function PUT(req: Request) {
   const authResult = await requireUser();
   if ("response" in authResult) return authResult.response;
-
   const body = (await req.json()) as Partial<GearList>;
-  const gearList = await gearListRepo.create({
-    name: body.name ?? "Untitled",
-    description: body.description,
-    items: body.items ?? [],
-    userId: authResult.user.id,
-    isDefault: false,
+  const gearList = await gearListRepo.upsert({
+    ...body,
+    // userId: authResult.user.id,
+    isDefault: true,
   });
-
   if (!gearList) {
     return NextResponse.json(
       { message: "Failed to create gear list" },

@@ -1,23 +1,26 @@
 "use client";
 
-import { redirect } from "next/navigation";
-import { useState } from "react";
+// packages
 import { signOut, useSession } from "next-auth/react";
-import { Loading } from "@/components/Loading";
-
 import { FaSignOutAlt } from "react-icons/fa";
+import { usePathname, useRouter, redirect } from "next/navigation";
+
+// components
+import { Loading } from "@/components/Loading";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
 
-  const [display, setDisplay] = useState("gear-lists");
+  // get pathname and router
+  const pathname = usePathname();
+  const router = useRouter();
 
   if (status === "unauthenticated") redirect("/signin");
 
   if (status === "loading") return <Loading />;
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden p-2 gap-0">
+    <div className="flex h-screen w-full flex-col overflow-hidden p-1 gap-1">
       <header className="flex h-[55px] w-full flex-shrink-0 flex-row flex-wrap items-center justify-between">
         {/* left */}
         <div className="flex w-[50px] h-[50px] items-center justify-center min-h-0">
@@ -36,15 +39,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           />
         </div>
         {/* middle */}
-        <div className="flex flex-wrap items-center justify-center">
+        <div className="flex flex-wrap items-center justify-center gap-1">
           <div
             className={
-              display === "gear-lists"
+              pathname.startsWith("/dashboard/gear-lists")
                 ? "btn btn-info btn-lg btn-outline btn-active"
                 : "btn btn-info btn-lg btn-outline "
             }
             onClick={() => {
-              setDisplay("gear-lists");
               redirect(`/dashboard/gear-lists`);
             }}
           >
@@ -52,12 +54,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div
             className={
-              display === "items"
+              pathname.startsWith("/dashboard/items")
                 ? "btn btn-info btn-lg btn-outline btn-active"
                 : "btn btn-info btn-lg btn-outline"
             }
             onClick={() => {
-              setDisplay("items");
               redirect(`/dashboard/items`);
             }}
           >

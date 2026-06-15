@@ -30,7 +30,7 @@ export class CloneGearListService {
         category: item.category,
         isDefault: false,
       };
-      const createdItem = await this.itemRepo.create(clonedItem);
+      const createdItem = await this.itemRepo.upsert(clonedItem);
       if (createdItem?.id) {
         clonedItems.push(
           new GearListItem({
@@ -41,7 +41,7 @@ export class CloneGearListService {
       }
     }
 
-    const createdGearList = await this.gearListRepo.create({
+    const createdGearList = await this.gearListRepo.upsert({
       name: sourceGearList.name,
       description: sourceGearList.description,
       userId,

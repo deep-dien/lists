@@ -1,12 +1,6 @@
 import { MongoGearListRepo } from "@/lib/adapters/mongoGearListRepo";
-import {
-  canModifyGearList,
-  requireUser,
-} from "@/lib/api/auth";
-import {
-  GearListItem,
-  GearListItemStatus,
-} from "@/lib/domain/models/gearList";
+import { canModifyGearList, requireUser } from "@/lib/api/auth";
+import { GearListItem, GearListItemStatus } from "@/lib/domain/models/gearList";
 import { NextResponse } from "next/server";
 
 const gearListRepo = new MongoGearListRepo();
@@ -15,7 +9,7 @@ type RouteParams = {
   params: Promise<{ gearListId: string; itemId: string }>;
 };
 
-export async function PATCH(req: Request, { params }: RouteParams) {
+export async function PUT(req: Request, { params }: RouteParams) {
   const authResult = await requireUser();
   if ("response" in authResult) return authResult.response;
 
@@ -34,10 +28,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     return NextResponse.json({ message: "Item not found" }, { status: 404 });
   }
 
-  if (
-    body.status &&
-    !["unpacked", "leave", "packed"].includes(body.status)
-  ) {
+  if (body.status && !["unpacked", "leave", "packed"].includes(body.status)) {
     return NextResponse.json({ message: "Invalid status" }, { status: 400 });
   }
 

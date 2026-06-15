@@ -6,29 +6,53 @@ import { useData } from "@/queries";
 import { useDataMutation } from "@/mutators";
 import { useState } from "react";
 import { redirect } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 
-export function GearList({ gear_list }: { gear_list: GearListModel }) {
+import { GearListSave } from "@/components/GearListSave";
+
+export function GearList({
+  gearList,
+  setInitialGearList,
+}: {
+  gearList: GearListModel;
+}) {
   const deleteMutation = useDataMutation(
-    `/api/gear-lists/${gear_list.id}`,
+    `/api/gear-lists/${gearList.id}`,
     "DELETE",
     ["/api/gear-lists"],
   );
 
   return (
-    <div className="justify-between flex flex-col w-full p-1 items-center">
-      <div className="justify-between flex flex-row w-full p-1 items-center">
-        <div
-          className="flex-1 btn btn-success"
-          onClick={() => redirect(`/dashboard/gear-lists/${gear_list.id}`)}
-        >
-          {gear_list.name}
-        </div>
-        {gear_list.isDefault && (
-          <div className="flex min-w-0 badge">DEFAULT</div>
-        )}
-        {!gear_list.isDefault && (
+    <div className="justify-between flex flex-col w-full items-center">
+      <div className="justify-between flex flex-row w-full items-center gap-1">
+        {/* title */}
+        <div className="flex-1 capitalize">{gearList.name}</div>
+        {/* go to */}
+        {!gearList.isDefault && (
           <div
-            className="flex min-w-0 btn btn-error"
+            className="flex min-w-0 btn btn-success btn-lg"
+            onClick={() => {
+              redirect(`/dashboard/gear-lists/${gearList.id}`);
+            }}
+          >
+            Go to
+          </div>
+        )}
+        {/* edit */}
+        {!gearList.isDefault && (
+          <div
+            className="flex min-w-0 btn btn-info btn-lg"
+            onClick={() => {
+              setInitialGearList(gearList);
+            }}
+          >
+            Edit
+          </div>
+        )}
+        {/* delete */}
+        {!gearList.isDefault && (
+          <div
+            className="flex min-w-0 btn btn-error btn-lg"
             onClick={() => {
               deleteMutation.mutateAsync(undefined);
             }}
@@ -42,74 +66,133 @@ export function GearList({ gear_list }: { gear_list: GearListModel }) {
   );
 }
 
-export function List({ gear_lists }: { gear_lists: GearListModel[] }) {
-  if (gear_lists.length === 0) {
+export function GearListList({
+  gearLists,
+  setInitialGearList,
+}: {
+  gearLists: GearListModel[];
+}) {
+  if (gearLists.length === 0) {
     return (
       <div className="p-1 items-center w-full h-full"> No lists found</div>
     );
   }
-
   return (
     <div className="p-1 items-center w-full h-full">
       <div className="w-full">
-        {gear_lists.map((gear_list) => {
-          return <GearList key={gear_list.id} gear_list={gear_list}></GearList>;
+        {gearLists.map((gearList) => {
+          return (
+            <GearList
+              key={gearList.id}
+              gearList={gearList}
+              setInitialGearList={setInitialGearList}
+            ></GearList>
+          );
         })}
       </div>
     </div>
   );
 }
 
-export default function GearLists() {
-  // state
-  const [includeDefaults, setIncludeDefaults] = useState(true);
-  const [search, setSearch] = useState("");
-
-  const { data: gear_lists, isLoading } = useData("/api/gear-lists", {
-    includeDefaults: includeDefaults,
-  });
-
-  if (isLoading) return <Loading />;
-
-  const gear_lists_filtered = (gear_lists ?? []).filter((list: GearListModel) =>
-    list.name.toLowerCase().includes(search.toLowerCase()),
+export function GearListDefault({ gearList }) {
+  const cloneMutation = useDataMutation(
+    `/api/gear-lists/${gearList.id}/clone`,
+    "POST",
+    ["/api/gear-lists", "/api/items"],
   );
 
   return (
+    <div
+      key={gearList.id}
+      className="flex btn btn btn-outline capitalize"
+      onClick={() => {
+        cloneMutation.mutateAsync(undefined);
+      }}
+    >
+      {gearList.name}
+    </div>
+  );
+}
+
+export default function GearLists() {
+  // state
+  const { data: gearLists, isLoading } = useData("/api/gear-lists", {
+    includeDefaults: true,
+  });
+
+  // filter for search term and no defau;t
+  const [search, setSearch] = useState("");
+  const gearListsSearch = (gearLists ?? []).filter(
+    (gearList: GearListModel) =>
+      gearList.name.toLowerCase().includes(search.toLowerCase()) &&
+      !gearList?.isDefault,
+  );
+
+  // filter for defaults
+  const gearListsDefaults = (gearLists ?? []).filter(
+    (gearList) => gearList.isDefault,
+  );
+
+  const cloneGearList = useDataMutation(
+    `/api/gear-lists/{gearListId}/clone`,
+    "POST",
+    ["/api/gear-lists", "/api/items"],
+  );
+
+  // set initial gear list for gear list editing
+  const [initialGearList, setInitialGearList] = useState(null);
+
+  if (isLoading) return <Loading />;
+
+  return (
     <div className="flex h-full w-full min-h-0 flex-col">
-      <header className="flex flex-shrink-0 flex-row items-center justify-between gap-1">
-        {/* title  */}
-        <div className="flex font-bold"> Gear lists</div>
-        {/* search  */}
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="input"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="flex flex-shrink-0 flex-col items-center justify-between gap-1">
+        <div className="flex flex-shrink-0 flex-row w-full items-center justify-between gap-1">
+          {/* title  */}
+          <div className="flex font-bold capitalize"> Gear lists</div>
+          {/* search  */}
+          <div className="flex flex-1">
+            <input
+              type="text"
+              placeholder="Search..."
+              className="input flex-1"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
-        {/* defaults */}
-        <div
-          className={
-            includeDefaults ? "btn btn-outline btn-active" : "btn btn-outline"
-          }
-          onClick={() => setIncludeDefaults((prev) => !prev)}
-        >
-          Defaults
+        <div className="flex flex-row flex-wrap flex-shrink-0 items-center w-full  gap-1">
+          {/* defaults */}
+          <div className="flex">Seed from defaults:</div>
+          <div className="flex flex-wrap gap-1">
+            {gearListsDefaults.map((gearList) => {
+              return <GearListDefault key={gearList.id} gearList={gearList} />;
+            })}
+          </div>
         </div>
-      </header>
+      </div>
       <div className="divider m-0 p-0"></div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <List gear_lists={gear_lists_filtered} />
+        <GearListList
+          gearLists={gearListsSearch}
+          setInitialGearList={setInitialGearList}
+        />
       </div>
       <div
         className="btn btn-success btn-lg fixed bottom-2 right-2 z-50"
-        onClick={() => {}}
+        onClick={() => {
+          setInitialGearList({ items: [] });
+        }}
       >
         Create
       </div>
+      {/* modal */}
+      {initialGearList && (
+        <GearListSave
+          initialGearList={initialGearList}
+          setInitialGearList={setInitialGearList}
+        />
+      )}
     </div>
   );
 }

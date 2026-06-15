@@ -8,25 +8,15 @@ export const STATUS_SORT_ORDER: Record<GearListItemStatus, number> = {
 
 type GearListItemInput = {
   itemId: string;
-  status?: GearListItemStatus;
+  status: GearListItemStatus;
 };
-
-function normalizeStatus(
-  init: GearListItemInput & { packed?: boolean; leave?: boolean },
-): GearListItemStatus {
-  if (init.status) return init.status;
-  if (init.leave) return "leave";
-  if (init.packed) return "packed";
-  return "unpacked";
-}
 
 export class GearListItem {
   itemId: string;
   status: GearListItemStatus;
-
-  constructor(init: GearListItemInput) {
+  constructor(init: GearListItem) {
     this.itemId = init.itemId;
-    this.status = normalizeStatus(init);
+    this.status = init.status;
   }
 }
 

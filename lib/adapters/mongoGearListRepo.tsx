@@ -1,7 +1,4 @@
-import {
-  GearListRepo,
-  GearListFilter,
-} from "@/lib/domain/models/gearListRepo";
+import { GearListRepo, GearListFilter } from "@/lib/domain/models/gearListRepo";
 import { RepoResult } from "@/lib/domain/models/repoResult";
 import { GearList, GearListItem } from "@/lib/domain/models/gearList";
 import { Db, Collection, ObjectId } from "mongodb";
@@ -29,6 +26,14 @@ class MongoGearListRepo implements GearListRepo {
     return db.collection(COLLECTION_NAME);
   }
 
+  private docToGearList(doc: Partial<GearListDoc>): GearList {
+    if (!doc) return null;
+    return new GearList({
+      ...doc,
+      id: doc._id.toString(),
+    });
+  }
+
   async findById(id: string): Promise<GearList | null> {
     const collection = await this.collection();
     const doc = await collection.findOne({ _id: new ObjectId(id) });
@@ -49,7 +54,7 @@ class MongoGearListRepo implements GearListRepo {
   ): Promise<GearList[]> {
     const collection = await this.collection();
     const conditions: Record<string, unknown>[] = [];
-
+    // defaults
     if (filter.includeDefaults) {
       conditions.push({
         $or: [{ userId }, { isDefault: true }],
@@ -57,7 +62,7 @@ class MongoGearListRepo implements GearListRepo {
     } else {
       conditions.push({ userId });
     }
-
+    // by id
     if (filter.gearListIds?.length) {
       conditions.push({
         _id: {
@@ -65,21 +70,10 @@ class MongoGearListRepo implements GearListRepo {
         },
       });
     }
-
     const query =
       conditions.length === 1 ? conditions[0] : { $and: conditions };
     const docs = await collection.find(query).toArray();
-    return docs.map(
-      (doc) =>
-        new GearList({
-          id: doc._id.toString(),
-          name: doc.name,
-          items: doc.items,
-          userId: doc.userId,
-          description: doc.description,
-          isDefault: doc.isDefault,
-        }),
-    );
+    return docs.map((doc) => this.docToGearList(doc));
   }
 
   async addItem(
@@ -158,41 +152,47 @@ class MongoGearListRepo implements GearListRepo {
     return { success: true, error: null };
   }
 
-  async create(gearList: Partial<GearList>): Promise<GearList | null> {
+  async upsert(gearList: Partial<GearList>): Promise<GearList | null> {
     const collection = await this.collection();
-    const result = await collection.insertOne({
-      _id: new ObjectId(),
-      userId: gearList.userId,
-      name: gearList.name ?? "",
-      isDefault: gearList.isDefault,
-      description: gearList.description,
-      items: gearList.items ?? [],
-    });
-    if (!result.acknowledged) return null;
-    return new GearList({
-      id: result.insertedId.toString(),
-      name: gearList.name ?? "",
-      items: gearList.items ?? [],
-      userId: gearList.userId,
-      description: gearList.description,
-      isDefault: gearList.isDefault,
-    });
-  }
-
-  async update(gearList: GearList): Promise<GearList | null> {
-    const setPayload: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(gearList)) {
-      if (key === "id") continue;
-      if (value !== undefined) setPayload[key] = value;
+    // no id -> create
+    if (!gearList.id) {
+      const collection = await this.collection();
+      const result = await collection.insertOne({
+        _id: new ObjectId(),
+        userId: gearList.userId,
+        name: gearList.name ?? "",
+        isDefault: gearList.isDefault,
+        description: gearList.description,
+        items: gearList.items ?? [],
+      });
+      if (!result.acknowledged) return null;
+      return this.docToGearList({
+        _id: result.insertedId,
+        name: gearList.name ?? "",
+        items: gearList.items ?? [],
+        ...gearList,
+      });
     }
-
-    const collection = await this.collection();
-    const result = await collection.updateOne(
-      { _id: new ObjectId(gearList.id) },
-      { $set: setPayload, $currentDate: { updatedAt: true } },
+    const updateDoc = {
+      ...gearList,
+      updatedAt: new Date(),
+    };
+    delete updateDoc.id;
+    const result = await collection.findOneAndUpdate(
+      {
+        _id: new ObjectId(gearList.id),
+        userId: gearList.userId,
+      },
+      {
+        $set: updateDoc,
+      },
+      {
+        upsert: true,
+        returnDocument: "after",
+      },
     );
-    if (!result.matchedCount) return null;
-    return this.findById(gearList.id);
+    if (!result) return null;
+    return this.docToGearList(result);
   }
 
   async delete(id: string): Promise<RepoResult> {

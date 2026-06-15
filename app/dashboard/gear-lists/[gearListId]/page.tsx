@@ -12,6 +12,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { redirect, useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import { GearListSave } from "@/components/GearListSave";
 import {
   FaArrowLeft,
   FaBoxOpen,
@@ -20,101 +21,135 @@ import {
   FaSuitcase,
   FaSortAmountDown,
 } from "react-icons/fa";
+import { str_sanitize } from "@/utilities";
 
-type SortMode = "status" | "category";
-
-type DisplayItem = {
-  itemId: string;
-  status: GearListItemStatus;
-  name: string;
-  category?: string;
-  weight?: number;
-};
-
-function compareByStatus(a: DisplayItem, b: DisplayItem) {
-  return STATUS_SORT_ORDER[a.status] - STATUS_SORT_ORDER[b.status];
+function compareByWeight(a, b) {
+  return b.weight - a.weight;
 }
 
-function compareByCategory(a: DisplayItem, b: DisplayItem) {
-  const catA = (a.category?.trim() || "Uncategorized").toLowerCase();
-  const catB = (b.category?.trim() || "Uncategorized").toLowerCase();
+function compareByStatus(a, b) {
+  if (a.status !== b.status)
+    return STATUS_SORT_ORDER[a.status] - STATUS_SORT_ORDER[b.status];
+  const catA = str_sanitize(a.category?.trim() || "Uncategorized");
+  const catB = str_sanitize(b.category?.trim() || "Uncategorized");
+  if (catA !== catB) return compareByCategory(a, b);
+  return compareByWeight(a, b);
+}
+
+function compareByCategory(a, b) {
+  const catA = str_sanitize(a.category?.trim() || "Uncategorized");
+  const catB = str_sanitize(b.category?.trim() || "Uncategorized");
   if (catA !== catB) return catA.localeCompare(catB);
-  return compareByStatus(a, b);
+  if (a.status !== b.status) return compareByStatus(a, b);
+  return compareByWeight(a, b);
 }
 
-function groupByCategory(items: DisplayItem[]) {
-  const groups = new Map<string, DisplayItem[]>();
-  for (const item of items) {
-    const category = item.category?.trim() || "Uncategorized";
-    const group = groups.get(category) ?? [];
-    group.push(item);
-    groups.set(category, group);
-  }
-  for (const group of groups.values()) {
-    group.sort(compareByStatus);
-  }
-  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
-}
-
-function statusCardClass(status: GearListItemStatus) {
+function statusClass(status: GearListItemStatus) {
   switch (status) {
     case "leave":
-      return "border-warning bg-warning/10";
+      return "border-warning bg-warning/20";
     case "packed":
-      return "border-success bg-success/10";
+      return "border-success bg-success/20";
     default:
-      return "border-error bg-error/10";
+      return "border-error bg-error/20";
   }
 }
 
-function ItemCard({
+function Item({
   item,
-  onLeave,
-  onPacked,
-  isUpdating,
+  handleStatusChange,
 }: {
-  item: DisplayItem;
-  onLeave: () => void;
-  onPacked: () => void;
-  isUpdating: boolean;
+  item: any;
+  handleStatusChange: any;
 }) {
   return (
-    <div className={`card card-bordered shadow-sm ${statusCardClass(item.status)}`}>
-      <div className="card-body gap-2 p-3">
-        <h3 className="card-title text-base">{item.name}</h3>
-        <div className="flex flex-wrap gap-2 text-sm opacity-80">
-          {item.category && (
-            <span className="badge badge-ghost badge-sm">{item.category}</span>
-          )}
-          {item.weight !== undefined && (
-            <span className="badge badge-ghost badge-sm">{item.weight}g</span>
-          )}
+    <div
+      className={`flex flex-row flex-wrap p-1 justify-between gap-1 ${statusClass(item.status)}`}
+    >
+      {/* name, weight etc */}
+      <div className="flex gap-1 w-sm">
+        <div className="flex capitalize">{item.name}</div>
+        {item.weight !== undefined && (
+          <div className="badge flex">{item.weight}g</div>
+        )}
+      </div>
+      {/* buttons */}
+      <div className="flex gap-1">
+        <div
+          className={`btn btn btn-warning ${
+            item.status === "leave" ? "" : "btn-outline"
+          }`}
+          onClick={() => handleStatusChange(item.itemId, item.status, "leave")}
+        >
+          <FaPlaneDeparture />
+          Leave
         </div>
-        <div className="card-actions justify-end">
-          <button
-            type="button"
-            className={`btn btn-sm gap-1 ${
-              item.status === "leave" ? "btn-warning" : "btn-outline btn-warning"
-            }`}
-            disabled={isUpdating}
-            onClick={onLeave}
-          >
-            <FaPlaneDeparture />
-            Leave
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm gap-1 ${
-              item.status === "packed" ? "btn-success" : "btn-outline btn-success"
-            }`}
-            disabled={isUpdating}
-            onClick={onPacked}
-          >
-            <FaSuitcase />
-            Packed
-          </button>
+        <div
+          className={`btn btn btn-success ${
+            item.status === "packed" ? "" : "btn-outline"
+          }`}
+          onClick={() => handleStatusChange(item.itemId, item.status, "packed")}
+        >
+          <FaSuitcase />
+          Packed
         </div>
       </div>
+    </div>
+  );
+}
+
+export function GearListItemsNil() {
+  return (
+    <div className="alert">
+      <FaBoxOpen />
+      <span>No items in this gear list.</span>
+    </div>
+  );
+}
+
+export function GearListItemsSmall({ itemsGrouped, handleStatusChange }) {
+  return (
+    <div className="flex flex-col gap-3 md:hidden">
+      {itemsGrouped.map(([group, itemsGroup]) => {
+        return (
+          <div key={group}>
+            <div className="capitalize">{group}</div>
+            <div>
+              {itemsGroup.map((item) => {
+                return (
+                  <Item
+                    key={item.itemId}
+                    item={item}
+                    handleStatusChange={handleStatusChange}
+                  />
+                );
+              })}
+            </div>
+            <div className="divider p-0 m-0"></div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function GearListItemsLarge({ itemsGrouped, handleStatusChange }) {
+  return (
+    <div className="hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {itemsGrouped.map(([group, itemsGrouped]) => (
+        <div key={group} className="flex flex-col gap-2">
+          <div className="capitalize">{group}</div>
+          <div className="flex flex-col gap-2">
+            {itemsGrouped.map((item) => (
+              <Item
+                key={item.itemId}
+                item={item}
+                handleStatusChange={handleStatusChange}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -126,33 +161,94 @@ export default function GearList() {
   const params = useParams();
   const gearListId = params.gearListId as string;
 
-  const [sortMode, setSortMode] = useState<SortMode>("status");
-  const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
+  // sort mode
+  const [sortMode, setSortMode] = useState("status");
 
-  const { data: gear_lists, isLoading: gearListsLoading } = useData(
+  // get gear list
+  const { data: gearLists, isLoading: gearListsLoading } = useData(
     "/api/gear-lists",
     {
       includeDefaults: true,
       gearListIds: [gearListId],
     },
   );
-  const gear_list = gear_lists?.find(
+  const gearList = gearLists?.find(
     (list: { id: string }) => list.id === gearListId,
   );
 
-  const itemIds = gear_list?.items?.map(
-    (item: { itemId: string }) => item.itemId,
-  ) ?? [];
-  const { data: items, isLoading: itemsLoading } = useData("/api/items", {
-    itemIds,
-  });
-
+  // if gear list is being shared, clone and add to users gear lists
   const cloneGearList = useDataMutation(
-    `/api/gear-lists/${gearListId}/clone`,
+    `/api/gear-lists/{gearListId}/clone`,
     "POST",
     ["/api/gear-lists", "/api/items"],
   );
+  useEffect(() => {
+    (async () => {
+      if (!gearList) return;
+      if (!session?.user?.id) return;
+      if (gearList.userId && gearList.userId === session.user.id) return;
+      if (cloneGearList.isPending) return;
+      const cloned = await cloneGearList.mutateAsync({
+        gearListId: gearListId.id,
+      });
+      router.replace(`/dashboard/gear-lists/${cloned.id}`);
+    })();
+  }, [session?.user?.id, gearList]);
 
+  // go through gear list items and fetch item info for each item from items db
+  const itemIds =
+    gearList?.items?.map((item: { itemId: string }) => item.itemId) ?? [];
+  const { data: items, isLoading: itemsLoading } = useData("/api/items", {
+    itemIds,
+  });
+  const gearListItems = useMemo(() => {
+    if (!gearList?.items || !items) return [];
+    console.log("gearList", gearList);
+    return gearList.items
+      .map((gearListItem) => {
+        console.log("gearListItem", gearListItem);
+        const item = items.find((item) => item.id === gearListItem.itemId);
+        if (!item) return null;
+        return {
+          // info from gearListItem
+          itemId: gearListItem.itemId,
+          status: gearListItem.status ?? "unpacked",
+          // info from item
+          name: item.name ?? "Unnamed item",
+          category: item.category,
+          weight: parseItemWeight(item.weight),
+        };
+      })
+      .filter(Boolean);
+  }, [gearList, items]);
+
+  // group items by status or category to display
+  const itemsGrouped = useMemo(() => {
+    if (sortMode === "status") {
+      const statuses = ["unpacked", "leave", "packed"];
+      return statuses.map((status) => {
+        const itemsStatus = gearListItems.filter(
+          (item) => item.status === status,
+        );
+        itemsStatus.sort(compareByCategory);
+        return [status, itemsStatus];
+      });
+    }
+    if (sortMode === "category") {
+      const categories = [
+        ...new Set(gearListItems.map((item) => item.category)),
+      ].sort();
+      return categories.map((category) => {
+        const itemsCategory = gearListItems.filter(
+          (item) => item.category === category,
+        );
+        itemsCategory.sort(compareByStatus);
+        return [category, itemsCategory];
+      });
+    }
+  }, [gearListItems, items, sortMode]);
+
+  // functions to update status when changed by user
   const updateStatus = useMutation({
     mutationFn: async ({
       itemId,
@@ -161,184 +257,121 @@ export default function GearList() {
       itemId: string;
       status: GearListItemStatus;
     }) => {
-      const res = await fetch(
-        `/api/gear-lists/${gearListId}/items/${itemId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        },
-      );
+      const res = await fetch(`/api/gear-lists/${gearListId}/items/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
       if (!res.ok) throw new Error("Failed to update item status");
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/gear-lists"] });
     },
-    onSettled: () => setUpdatingItemId(null),
+    onSettled: () => {},
   });
-
-  useEffect(() => {
-    (async () => {
-      if (!gear_list) return;
-      if (!session?.user?.id) return;
-      if (gear_list.userId && gear_list.userId === session.user.id) return;
-      if (cloneGearList.isPending) return;
-      const cloned = await cloneGearList.mutateAsync({});
-      router.replace(`/dashboard/gear-lists/${cloned.id}`);
-    })();
-  }, [session?.user?.id, gear_list]);
-
-  const displayItems = useMemo<DisplayItem[]>(() => {
-    if (!gear_list?.items || !items) return [];
-
-    type ItemRecord = {
-      id?: string;
-      name?: string;
-      category?: string;
-      weight?: number;
-    };
-    const itemById = new Map<string, ItemRecord>(
-      (items as ItemRecord[]).map((item) => [item.id ?? "", item]),
-    );
-
-    return gear_list.items
-      .map(
-        (entry: { itemId: string; status?: GearListItemStatus }) => {
-          const item = itemById.get(entry.itemId);
-          if (!item) return null;
-          return {
-            itemId: entry.itemId,
-            status: entry.status ?? "unpacked",
-            name: item.name ?? "Unnamed item",
-            category: item.category,
-            weight: parseItemWeight(item.weight),
-          };
-        },
-      )
-      .filter(Boolean) as DisplayItem[];
-  }, [gear_list, items]);
-
-  const sortedItems = useMemo(() => {
-    const copy = [...displayItems];
-    copy.sort(sortMode === "category" ? compareByCategory : compareByStatus);
-    return copy;
-  }, [displayItems, sortMode]);
-
-  const categoryGroups = useMemo(
-    () => groupByCategory(displayItems),
-    [displayItems],
-  );
-
   const handleStatusChange = (
     itemId: string,
     currentStatus: GearListItemStatus,
     nextStatus: GearListItemStatus,
   ) => {
-    const status =
-      currentStatus === nextStatus ? "unpacked" : nextStatus;
-    setUpdatingItemId(itemId);
+    const status = currentStatus === nextStatus ? "unpacked" : nextStatus;
     updateStatus.mutate({ itemId, status });
   };
 
+  // reset status
+  const resetStatus = function () {
+    gearList.items.map((item) => {
+      updateStatus.mutate({ itemId: item.itemId, status: "unpacked" });
+    });
+  };
+
+  // initial gear list state for making edits
+  const [initialGearList, setInitialGearList] = useState(null);
+
   if (gearListsLoading || itemsLoading) return <Loading />;
-  if (!gear_list) return <Loading />;
+  if (!gearList) return <Loading />;
+  if (gearList?.isDefault) return <Loading />;
 
   return (
     <div className="flex h-full w-full min-h-0 flex-col">
-      <header className="flex w-full flex-shrink-0 flex-col gap-2">
-        <div className="flex w-full flex-row items-center justify-between">
-          <h1 className="text-lg font-bold">{gear_list.name}</h1>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => redirect("/dashboard/gear-lists")}
-          >
-            <FaArrowLeft />
-          </button>
+      <div className="flex w-full flex-shrink-0 flex-col">
+        <div className="flex w-full flex-row flex-wrap items-center justify-between gap-1">
+          {/* title */}
+          <div className="order-1 font-bold capitalize">{gearList.name}</div>
+          {/* sort display*/}
+          <div className="gap-1 flex-row flex order-3 md:order-2">
+            <div
+              className={`flex btn btn ${
+                sortMode === "status" ? "btn-active" : ""
+              }`}
+              onClick={() => setSortMode("status")}
+            >
+              <FaSortAmountDown />
+              Status
+            </div>
+            <div
+              className={`flex btn btn ${
+                sortMode === "category" ? "btn-active" : ""
+              }`}
+              onClick={() => setSortMode("category")}
+            >
+              <FaLayerGroup />
+              Category
+            </div>
+          </div>
+          {/* edit or back */}
+          <div className="order-2 md:order-3 flex flex-row gap-1">
+            <div className="btn btn-warning" onClick={resetStatus}>
+              Reset
+            </div>
+            <div
+              className="btn btn-info"
+              onClick={() => setInitialGearList(gearList)}
+            >
+              Edit
+            </div>
+            <div
+              className="btn btn"
+              onClick={() => redirect("/dashboard/gear-lists")}
+            >
+              Back
+            </div>
+          </div>
         </div>
 
-        <div className="join md:hidden">
-          <button
-            type="button"
-            className={`btn btn-sm join-item gap-1 ${
-              sortMode === "status" ? "btn-active" : ""
-            }`}
-            onClick={() => setSortMode("status")}
-          >
-            <FaSortAmountDown />
-            Status
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm join-item gap-1 ${
-              sortMode === "category" ? "btn-active" : ""
-            }`}
-            onClick={() => setSortMode("category")}
-          >
-            <FaLayerGroup />
-            Category
-          </button>
-        </div>
-      </header>
+        <div className="divider p-0 m-0"></div>
+      </div>
 
-      <div className="divider m-0 my-2"></div>
+      <div className="divider m-0 m-0"></div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {displayItems.length === 0 ? (
-          <div className="alert">
-            <FaBoxOpen />
-            <span>No items in this gear list.</span>
-          </div>
+        {itemsGrouped.length === 0 ? (
+          <GearListItemsNil />
         ) : (
           <>
-            <div className="flex flex-col gap-3 md:hidden">
-              {sortedItems.map((item) => (
-                <ItemCard
-                  key={item.itemId}
-                  item={item}
-                  isUpdating={updatingItemId === item.itemId}
-                  onLeave={() =>
-                    handleStatusChange(item.itemId, item.status, "leave")
-                  }
-                  onPacked={() =>
-                    handleStatusChange(item.itemId, item.status, "packed")
-                  }
-                />
-              ))}
-            </div>
+            {/* one column, small screen only */}
+            <GearListItemsSmall
+              itemsGrouped={itemsGrouped}
+              handleStatusChange={handleStatusChange}
+            />
 
-            <div className="hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {categoryGroups.map(([category, categoryItems]) => (
-                <div key={category} className="flex flex-col gap-2">
-                  <h2 className="sticky top-0 z-10 bg-base-100 py-1 text-sm font-bold uppercase tracking-wide opacity-70">
-                    {category}
-                  </h2>
-                  <div className="flex flex-col gap-2">
-                    {categoryItems.map((item) => (
-                      <ItemCard
-                        key={item.itemId}
-                        item={item}
-                        isUpdating={updatingItemId === item.itemId}
-                        onLeave={() =>
-                          handleStatusChange(item.itemId, item.status, "leave")
-                        }
-                        onPacked={() =>
-                          handleStatusChange(
-                            item.itemId,
-                            item.status,
-                            "packed",
-                          )
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* multiple columns, large screen only */}
+            <GearListItemsLarge
+              itemsGrouped={itemsGrouped}
+              handleStatusChange={handleStatusChange}
+            />
           </>
         )}
       </div>
+
+      {/* initialGearList save modal */}
+      {initialGearList && (
+        <GearListSave
+          initialGearList={initialGearList}
+          setInitialGearList={setInitialGearList}
+        />
+      )}
     </div>
   );
 }

@@ -9,8 +9,7 @@ export interface ItemFilter {
 interface ItemRepo {
   findByIds(itemIds: string[]): Promise<Item[]>;
   findForUser(userId: string, filter: ItemFilter): Promise<Item[]>;
-  create(item: Partial<Item>): Promise<Item | null>;
-  update(item: Item): Promise<Item | null>;
+  upsert(item: Partial<Item>): Promise<Item | null>;
   delete(id: string): Promise<RepoResult>;
 }
 
