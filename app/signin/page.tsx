@@ -34,51 +34,50 @@ export function SignInContent() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden p-4">
+    <div className="flex h-screen w-screen flex-col p-10 gap-10 overflow-hidden">
       {/* logo */}
-      <div className="flex flex-1 items-center justify-center min-h-0">
+      <div className="flex items-center justify-center min-h-0">
         <img
           style={{
             maxHeight: "100%",
             maxWidth: "100%",
             borderRadius: "50%",
             backgroundColor: "white",
-            clipPath: "inset(10% 10% 10% 10%)",
+            clipPath: "inset(0% 0% 0% 0%)",
             objectFit: "contain",
           }}
           src="/noun-checklist-circle-1676792.png"
-          alt="Jaunt"
+          alt="Gear Lists"
           className="h-full object-contain bg-white"
         />
       </div>
 
-      <div className="flex flex-col py-3 items-center">
-        <div className="text-center p-2 items-center justify-content-between">
-          <h1> Welcome to Jaunt </h1>
-        </div>
-        <div className="text-center p-2 items-center justify-content-between">
-          The app for planning trips.
-        </div>
-        <div className="text-center p-2 items-center justify-content-between">
+      {/* title */}
+      <div className="text-bold text-center w-full flex">
+        Welcome to Gear Lists
+      </div>
+
+      {/* sign in */}
+      <div className="gap-5 flex flex-col">
+        <div className="text-center flex flex-row w-full items-center ">
           Please sign in to access your dashboard.
         </div>
-        <div className="p-2 items-center text-center flex-col">
+        <div className="flex w-full items-center text-center flex-col gap-5">
           <input
-            className="d-flex form-control m-2 p-2"
+            className="flex form-control w-full flex-1"
             type="email"
             required
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <button
-            type="button"
+          <div
             onClick={(e) => handleMagicLink(e)}
-            disabled={status === "sending" || !email}
-            className="flex items-center btn btn-success btn-lg p-2"
+            // disabled={status === "sending" || !email}
+            className={`flex items-center btn btn-success btn-lg ${status === "sending" || !email ? "btn-disabled" : ""}`}
           >
             {status === "sending" ? "Sending…" : "Send magic link"}
-          </button>
+          </div>
         </div>
       </div>
     </div>
