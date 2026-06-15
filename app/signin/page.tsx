@@ -5,8 +5,11 @@
 import { getProviders, signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function SignInPage() {
+import { Loading } from "@/components/Loading";
+
+export function SignInContent() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
 
@@ -32,7 +35,7 @@ export default function SignInPage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden p-4">
-      {/* Logo fills all remaining space */}
+      {/* logo */}
       <div className="flex flex-1 items-center justify-center min-h-0">
         <img
           style={{
@@ -41,7 +44,6 @@ export default function SignInPage() {
             borderRadius: "50%",
             backgroundColor: "white",
             clipPath: "inset(10% 10% 10% 10%)",
-
             objectFit: "contain",
           }}
           src="/noun-checklist-circle-1676792.png"
@@ -80,5 +82,13 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage({}) {
+  return (
+    <Suspense fallback={<Loading />}>
+      <SignInContent></SignInContent>
+    </Suspense>
   );
 }
