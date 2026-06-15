@@ -29,7 +29,7 @@ export function GearList({
         <div className="flex-1 capitalize">{gearList.name}</div>
         {/* go to */}
         <div
-          className="flex min-w-0 btn btn-success btn-lg"
+          className="flex min-w-0 btn btn-success"
           onClick={() => {
             redirect(`/dashboard/gear-lists/${gearList.id}`);
           }}
@@ -38,7 +38,7 @@ export function GearList({
         </div>
         {/* edit */}
         <div
-          className="flex min-w-0 btn btn-info btn-lg"
+          className="flex min-w-0 btn btn-info"
           onClick={() => {
             setInitialGearList(gearList);
           }}
@@ -47,7 +47,7 @@ export function GearList({
         </div>
         {/* delete */}
         <div
-          className="flex min-w-0 btn btn-error btn-lg"
+          className="flex min-w-0 btn btn-error"
           onClick={() => {
             deleteMutation.mutateAsync(undefined);
           }}
@@ -145,15 +145,19 @@ export default function GearLists() {
             />
           </div>
         </div>
-        <div className="flex flex-row flex-wrap flex-shrink-0 items-center w-full  gap-1">
-          {/* defaults */}
-          <div className="flex">Seed from defaults:</div>
-          <div className="flex flex-wrap gap-1">
-            {gearListsDefaults.map((gearList) => {
-              return <GearListDefault key={gearList.id} gearList={gearList} />;
-            })}
+        {/* defaults */}
+        {!!gearListsDefaults && (
+          <div className="flex flex-row flex-wrap flex-shrink-0 items-center w-full  gap-1">
+            <div className="flex">Seed from defaults:</div>
+            <div className="flex flex-wrap gap-1">
+              {gearListsDefaults.map((gearList) => {
+                return (
+                  <GearListDefault key={gearList.id} gearList={gearList} />
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div className="divider m-0 p-0"></div>
       <div className="min-h-0 flex-1 overflow-y-auto">

@@ -132,7 +132,9 @@ export default function Items() {
         {itemsFiltered.map(([category, itemsCategory]) => {
           return (
             <div key={category} className="gap-1">
-              <div className="font-bold capitalize flex">{category}</div>
+              <div className="font-bold capitalize flex divider">
+                {category}
+              </div>
               <ItemsList
                 items={itemsCategory}
                 initialItem={initialItem}
