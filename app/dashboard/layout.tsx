@@ -43,8 +43,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div
             className={
               pathname.startsWith("/dashboard/gear-lists")
-                ? "btn btn-info btn-lg btn-outline btn-active"
-                : "btn btn-info btn-lg btn-outline "
+                ? "btn btn-info btn-xl btn-outline btn-active"
+                : "btn btn-info btn-xl btn-outline "
             }
             onClick={() => {
               redirect(`/dashboard/gear-lists`);
@@ -55,8 +55,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div
             className={
               pathname.startsWith("/dashboard/items")
-                ? "btn btn-info btn-lg btn-outline btn-active"
-                : "btn btn-info btn-lg btn-outline"
+                ? "btn btn-info btn-xl btn-outline btn-active"
+                : "btn btn-info btn-xl btn-outline"
             }
             onClick={() => {
               redirect(`/dashboard/items`);

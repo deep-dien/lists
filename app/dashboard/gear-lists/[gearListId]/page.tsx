@@ -341,7 +341,7 @@ export default function GearList() {
           {/* sort display*/}
           <div className="gap-1 flex-row flex order-3 md:order-2">
             <div
-              className={`flex btn btn ${
+              className={`flex btn btn-lg ${
                 sortMode === "status" ? "btn-active" : ""
               }`}
               onClick={() => setSortMode("status")}
@@ -350,7 +350,7 @@ export default function GearList() {
               Status
             </div>
             <div
-              className={`flex btn btn ${
+              className={`flex btn btn-lg ${
                 sortMode === "category" ? "btn-active" : ""
               }`}
               onClick={() => setSortMode("category")}
@@ -361,17 +361,17 @@ export default function GearList() {
           </div>
           {/* edit or back */}
           <div className="order-2 md:order-3 flex flex-row gap-1">
-            <div className="btn btn-warning" onClick={resetStatus}>
+            <div className="btn btn-lg btn-warning" onClick={resetStatus}>
               Reset
             </div>
             <div
-              className="btn btn-info"
+              className="btn btn-lg btn-info"
               onClick={() => setInitialGearList(gearList)}
             >
               Edit
             </div>
             <div
-              className="btn btn"
+              className="btn btn-lg"
               onClick={() => redirect("/dashboard/gear-lists")}
             >
               Back

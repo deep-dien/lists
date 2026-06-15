@@ -23,7 +23,7 @@ export function Item({
         {/* add */}
         {!gearListItemIds.includes(item.id) && (
           <div
-            className="flex min-w-0 w-[100px] btn-sm btn btn-success"
+            className="flex min-w-0 w-[100px] btn btn btn-success"
             onClick={() => {
               setSaveGearList((prev) => {
                 return {
@@ -42,7 +42,7 @@ export function Item({
         {/* remove */}
         {gearListItemIds.includes(item.id) && (
           <div
-            className="flex min-w-0 w-[100px] btn-sm btn btn-warning"
+            className="flex min-w-0 w-[100px] btn btn btn-warning"
             onClick={() => {
               setSaveGearList((prev) => {
                 return {
@@ -125,7 +125,7 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
   const [initialItem, setInitialItem] = useState(null);
 
   return (
-    <div className="flex h-full w-full min-h-0 flex-col">
+    <div className="flex h-full w-full min-h-0 flex-col gap-1">
       {/* header */}
       <div className="flex w-full flex-row items-center justify-between gap-1">
         {/* title  */}
@@ -141,10 +141,7 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
           />
         </div>
         {/* create button */}
-        <div
-          className="btn btn-success btn-sm"
-          onClick={() => setInitialItem({})}
-        >
+        <div className="btn btn-success btn" onClick={() => setInitialItem({})}>
           Create
         </div>
       </div>
@@ -204,7 +201,7 @@ export function GearListSave({
         {/* title */}
         <div className="w-full flex-row justify-between flex items-center min-h-0">
           <div className="font-bold">Save gear list</div>
-          <div className="btn btn-xs" onClick={() => setInitialGearList(null)}>
+          <div className="btn btn" onClick={() => setInitialGearList(null)}>
             <FaTimes />
           </div>
         </div>
@@ -235,11 +232,11 @@ export function GearListSave({
         </div>
         <div className="divider p-0 m-0"></div>
         <div className="flex flex-row items-center gap-1">
-          <div className="btn btn-success btn-sm flex-1" onClick={handleSave}>
+          <div className="btn btn-success btn flex-1" onClick={handleSave}>
             Save gear list
           </div>
           <div
-            className="btn btn-sm flex-1"
+            className="btn btn flex-1"
             onClick={() => setInitialGearList(null)}
           >
             Cancel
