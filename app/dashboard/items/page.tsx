@@ -4,7 +4,7 @@ import { Loading } from "@/components/Loading";
 import { GearList as GearListModel } from "@/lib/domain/models/gearList";
 import { useData } from "@/queries";
 import { useDataMutation } from "@/mutators";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { redirect } from "next/navigation";
 
 import { ItemSave } from "@/components/ItemSave";
@@ -18,6 +18,7 @@ export function Item({ item, setInitialItem }: { item: GearListModel }) {
     <div className="justify-between flex flex-col w-full p-1 items-center">
       <div className="justify-between flex flex-row w-full gap-1 items-center">
         <div className="flex-1 capitalize">{item.name}</div>
+        <div> {item.isDefault ? "Default" : ""}</div>
         <div
           className="flex min-w-0 btn btn-sm btn-info"
           onClick={() => {
@@ -70,22 +71,37 @@ export function ItemsList({
 }
 
 export default function Items() {
-  // state
-  const { data: items, isLoading } = useData("/api/items", {
+  // items
+  const { data: items = [], isLoading } = useData("/api/items", {
     includeDefaults: true,
   });
 
-  const [search, setSearch] = useState("");
-  const itemsFiltered = (items ?? []).filter((list: GearListModel) =>
-    list.name.toLowerCase().includes(search.toLowerCase()),
+  // categories
+  const categories = [...new Set(items.map((item) => item.category))].filter(
+    Boolean,
   );
 
-  const categories = [
-    ...new Set(
-      (items ? items : []).map((item) => item.category).filter(Boolean),
-    ),
-  ];
+  // sort items
+  const itemsGrouped = useMemo(() => {
+    if (!items) return [];
+    return categories.map((category) => {
+      const itemsCategory = items.filter((item) => item.category === category);
+      return [category, itemsCategory];
+    });
+  }, [items]);
 
+  // search
+  const [search, setSearch] = useState("");
+  const itemsFiltered = itemsGrouped
+    .map(([category, itemsCategory]) => {
+      const itemsFilter = itemsCategory.filter((item) =>
+        item.name.toLowerCase().includes(search.toLowerCase()),
+      );
+      return [category, itemsFilter];
+    })
+    .filter(([category, itemsCategory]) => !!itemsCategory?.length);
+
+  // initial item for item save
   const [initialItem, setInitialItem] = useState(null);
 
   if (isLoading) return <Loading />;
@@ -107,14 +123,30 @@ export default function Items() {
           />
         </div>
       </div>
-      <div className="divider m-0 p-0"></div>
+
+      {/* divider */}
+      <div className="divider p-0 m-0"></div>
+
       {/* items */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <ItemsList items={itemsFiltered} setInitialItem={setInitialItem} />
+      <div className="overflow-y-auto w-full">
+        {itemsFiltered.map(([category, itemsCategory]) => {
+          return (
+            <div key={category} className="gap-1">
+              <div className="font-bold capitalize flex">{category}</div>
+              <ItemsList
+                items={itemsCategory}
+                initialItem={initialItem}
+                setInitialItem={setInitialItem}
+              />
+            </div>
+          );
+        })}
+        <div className="w-full h-[50px]"></div>
       </div>
+
       {/* create button */}
       <div
-        className="btn btn-success btn-lg fixed bottom-2 right-2 z-50"
+        className="btn btn-success btn-xl fixed bottom-2 right-2 z-50"
         onClick={() => setInitialItem({})}
       >
         Create

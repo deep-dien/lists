@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const includeDefaults = searchParams.get("includeDefaults") === "true";
   const items = await itemRepo.findForUser(session.user.id, {
     itemIds,
-    includeDefaults,
+    includeDefaults: true,
   });
   return NextResponse.json(items);
 }

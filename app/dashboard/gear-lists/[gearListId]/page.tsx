@@ -64,10 +64,10 @@ function Item({
 }) {
   return (
     <div
-      className={`flex flex-row flex-wrap p-1 justify-between gap-1 ${statusClass(item.status)}`}
+      className={`flex flex-col flex-wrap p-1 justify-between gap-1 ${statusClass(item.status)}`}
     >
       {/* name, weight etc */}
-      <div className="flex gap-1 w-sm">
+      <div className="flex gap-1">
         <div className="flex capitalize">{item.name}</div>
         {item.weight !== undefined && (
           <div className="badge flex">{item.weight}g</div>
@@ -114,7 +114,7 @@ export function GearListItemsSmall({ itemsGrouped, handleStatusChange }) {
         return (
           <div key={group}>
             <div className="capitalize">{group}</div>
-            <div>
+            <div className="flex flex-col gap-1">
               {itemsGroup.map((item) => {
                 return (
                   <Item
@@ -135,21 +135,27 @@ export function GearListItemsSmall({ itemsGrouped, handleStatusChange }) {
 
 export function GearListItemsLarge({ itemsGrouped, handleStatusChange }) {
   return (
-    <div className="hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {itemsGrouped.map(([group, itemsGrouped]) => (
-        <div key={group} className="flex flex-col gap-2">
-          <div className="capitalize">{group}</div>
-          <div className="flex flex-col gap-2">
-            {itemsGrouped.map((item) => (
-              <Item
-                key={item.itemId}
-                item={item}
-                handleStatusChange={handleStatusChange}
-              />
-            ))}
+    <div className="w-full h-full flex-row flex gap-1">
+      {itemsGrouped.map(([group, itemsGrouped]) => {
+        if (!itemsGrouped?.length) return null;
+        return (
+          <div
+            key={group}
+            className="flex flex-shrink-0 min-h-0 h-full w-fit flex-col gap-2"
+          >
+            <div className="capitalize">{group}</div>
+            <div className="flex flex-col gap-2">
+              {itemsGrouped.map((item) => (
+                <Item
+                  key={item.itemId}
+                  item={item}
+                  handleStatusChange={handleStatusChange}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -171,7 +177,7 @@ export default function GearList() {
 
   // if gear list is being shared, clone and add to users gear lists
   const cloneGearList = useDataMutation(
-    `/api/gear-lists/{gearListId}/clone`,
+    `/api/gear-lists/${gearListId}/clone`,
     "POST",
     ["/api/gear-lists", "/api/items"],
   );
@@ -196,7 +202,6 @@ export default function GearList() {
   });
   const gearListItems = useMemo(() => {
     if (!gearList?.items || !items) return [];
-    console.log("gearList", gearList);
     return gearList.items
       .map((gearListItem) => {
         console.log("gearListItem", gearListItem);
@@ -219,25 +224,47 @@ export default function GearList() {
   const itemsGrouped = useMemo(() => {
     if (sortMode === "status") {
       const statuses = ["unpacked", "leave", "packed"];
-      return statuses.map((status) => {
-        const itemsStatus = gearListItems.filter(
-          (item) => item.status === status,
-        );
-        itemsStatus.sort(compareByCategory);
-        return [status, itemsStatus];
-      });
+      return statuses
+        .map((status) => {
+          const itemsStatus = gearListItems.filter(
+            (item) => item.status === status,
+          );
+          itemsStatus.sort(compareByCategory);
+          return [status, itemsStatus];
+        })
+        .sort((a, b) => {
+          const [itemsA, itemsB] = [a[1], b[1]];
+          const packedA = itemsA.every(
+            (item) => item.status === "unpacked",
+          ).length;
+          const packedB = itemsB.every(
+            (item) => item.status === "unpacked",
+          ).length;
+          return packedB - packedA;
+        });
     }
     if (sortMode === "category") {
       const categories = [
         ...new Set(gearListItems.map((item) => item.category)),
       ].sort();
-      return categories.map((category) => {
-        const itemsCategory = gearListItems.filter(
-          (item) => item.category === category,
-        );
-        itemsCategory.sort(compareByStatus);
-        return [category, itemsCategory];
-      });
+      return categories
+        .map((category) => {
+          const itemsCategory = gearListItems.filter(
+            (item) => item.category === category,
+          );
+          itemsCategory.sort(compareByStatus);
+          return [category, itemsCategory];
+        })
+        .sort((a, b) => {
+          const [itemsA, itemsB] = [a[1], b[1]];
+          const packedA = Number(
+            itemsA.every((item) => item.status === "packed"),
+          );
+          const packedB = Number(
+            itemsB.every((item) => item.status === "packed"),
+          );
+          return packedA - packedB;
+        });
     }
   }, [gearListItems, items, sortMode]);
 

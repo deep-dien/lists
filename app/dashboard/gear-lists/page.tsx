@@ -28,38 +28,32 @@ export function GearList({
         {/* title */}
         <div className="flex-1 capitalize">{gearList.name}</div>
         {/* go to */}
-        {!gearList.isDefault && (
-          <div
-            className="flex min-w-0 btn btn-success btn-lg"
-            onClick={() => {
-              redirect(`/dashboard/gear-lists/${gearList.id}`);
-            }}
-          >
-            Go to
-          </div>
-        )}
+        <div
+          className="flex min-w-0 btn btn-success btn-lg"
+          onClick={() => {
+            redirect(`/dashboard/gear-lists/${gearList.id}`);
+          }}
+        >
+          Go to
+        </div>
         {/* edit */}
-        {!gearList.isDefault && (
-          <div
-            className="flex min-w-0 btn btn-info btn-lg"
-            onClick={() => {
-              setInitialGearList(gearList);
-            }}
-          >
-            Edit
-          </div>
-        )}
+        <div
+          className="flex min-w-0 btn btn-info btn-lg"
+          onClick={() => {
+            setInitialGearList(gearList);
+          }}
+        >
+          Edit
+        </div>
         {/* delete */}
-        {!gearList.isDefault && (
-          <div
-            className="flex min-w-0 btn btn-error btn-lg"
-            onClick={() => {
-              deleteMutation.mutateAsync(undefined);
-            }}
-          >
-            Delete
-          </div>
-        )}
+        <div
+          className="flex min-w-0 btn btn-error btn-lg"
+          onClick={() => {
+            deleteMutation.mutateAsync(undefined);
+          }}
+        >
+          Delete
+        </div>
       </div>
       <div className="divider p-1 m-0"></div>
     </div>
@@ -95,7 +89,7 @@ export function GearListList({
 }
 
 export function GearListDefault({ gearList }) {
-  const cloneMutation = useDataMutation(
+  const cloneGearList = useDataMutation(
     `/api/gear-lists/${gearList.id}/clone`,
     "POST",
     ["/api/gear-lists", "/api/items"],
@@ -106,7 +100,7 @@ export function GearListDefault({ gearList }) {
       key={gearList.id}
       className="flex btn btn btn-outline capitalize"
       onClick={() => {
-        cloneMutation.mutateAsync(undefined);
+        cloneGearList.mutateAsync(undefined);
       }}
     >
       {gearList.name}
@@ -116,9 +110,7 @@ export function GearListDefault({ gearList }) {
 
 export default function GearLists() {
   // state
-  const { data: gearLists, isLoading } = useData("/api/gear-lists", {
-    includeDefaults: true,
-  });
+  const { data: gearLists, isLoading } = useData("/api/gear-lists");
 
   // filter for search term and no defau;t
   const [search, setSearch] = useState("");
@@ -129,15 +121,7 @@ export default function GearLists() {
   );
 
   // filter for defaults
-  const gearListsDefaults = (gearLists ?? []).filter(
-    (gearList) => gearList.isDefault,
-  );
-
-  const cloneGearList = useDataMutation(
-    `/api/gear-lists/{gearListId}/clone`,
-    "POST",
-    ["/api/gear-lists", "/api/items"],
-  );
+  const { data: gearListsDefaults = [] } = useData("/api/gear-lists/defaults");
 
   // set initial gear list for gear list editing
   const [initialGearList, setInitialGearList] = useState(null);
@@ -174,12 +158,12 @@ export default function GearLists() {
       <div className="divider m-0 p-0"></div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <GearListList
-          gearLists={gearListsSearch}
+          gearLists={gearListsDefaults}
           setInitialGearList={setInitialGearList}
         />
       </div>
       <div
-        className="btn btn-success btn-lg fixed bottom-2 right-2 z-50"
+        className="btn btn-success btn-xl fixed bottom-2 right-2 z-50"
         onClick={() => {
           setInitialGearList({ items: [] });
         }}

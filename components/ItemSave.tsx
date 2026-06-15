@@ -68,13 +68,17 @@ export function ItemSave({ initialItem, setInitialItem, categories = [] }) {
             <div className="">Category:</div>
             <select
               className="select w-full capitalize"
-              defaultValue={saveItem?.category ?? ""}
+              value={saveItem?.category ?? ""}
               onChange={(e) => {
-                setSaveItem((prev) => {
-                  return { ...prev, category: e.target.value };
-                });
+                setSaveItem((prev) => ({
+                  ...prev,
+                  category: e.target.value,
+                }));
               }}
             >
+              <option value="" disabled hidden>
+                Select category
+              </option>
               {categories.map((category) => (
                 <option key={category} value={category} className="capitalize">
                   {category}

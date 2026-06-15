@@ -23,7 +23,7 @@ export function Item({
         {/* add */}
         {!gearListItemIds.includes(item.id) && (
           <div
-            className="flex min-w-0 w-[100px] btn-xs btn btn-success"
+            className="flex min-w-0 w-[100px] btn-sm btn btn-success"
             onClick={() => {
               setSaveGearList((prev) => {
                 return {
@@ -42,7 +42,7 @@ export function Item({
         {/* remove */}
         {gearListItemIds.includes(item.id) && (
           <div
-            className="flex min-w-0 w-[100px] btn-xs btn btn-warning"
+            className="flex min-w-0 w-[100px] btn-sm btn btn-warning"
             onClick={() => {
               setSaveGearList((prev) => {
                 return {
@@ -76,7 +76,7 @@ export function ItemsList({
     );
   }
   return (
-    <div className="items-center flex-col w-full h-full gap-2">
+    <div className="items-center flex-col w-full h-full gap-1">
       {items.map((item) => {
         return (
           <Item
@@ -97,23 +97,29 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
     includeDefaults: true,
   });
 
-  // sort items\
-  const itemSorted = useMemo(() => {
-    return [...(items ?? [])].sort(
-      (a, b) =>
-        Number(saveGearList.items.map((item) => item.itemId).includes(a.id)) -
-        Number(saveGearList.items.map((item) => item.itemId).includes(b.id)),
-    );
+  // sort items
+  const itemsGrouped = useMemo(() => {
+    if (!items) return [];
+    const categories = [...new Set(items.map((item) => item.category))];
+    return categories.map((category) => {
+      const itemsCategory = items.filter((item) => item.category === category);
+      itemsCategory.sort(
+        (a, b) =>
+          Number(saveGearList.items.map((item) => item.itemId).includes(a.id)) -
+          Number(saveGearList.items.map((item) => item.itemId).includes(b.id)),
+      );
+      return [category, itemsCategory];
+    });
   }, [items, saveGearList.items]);
-
-  console.log(items);
-  console.log("saveGearList", saveGearList);
 
   // search
   const [search, setSearch] = useState("");
-  const itemsFiltered = (itemSorted ?? []).filter((list: GearListModel) =>
-    list.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const itemsFiltered = itemsGrouped.map(([category, itemsCategory]) => {
+    const itemsFilter = itemsCategory.filter((item) =>
+      item.name.toLowerCase().includes(search.toLowerCase()),
+    );
+    return [category, itemsFilter];
+  });
 
   // new item
   const [initialItem, setInitialItem] = useState(null);
@@ -146,11 +152,19 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
       <div className="divider p-0 m-0"></div>
       {/* items */}
       <div className="overflow-y-auto w-full">
-        <ItemsList
-          items={itemsFiltered}
-          saveGearList={saveGearList}
-          setSaveGearList={setSaveGearList}
-        />
+        {itemsFiltered.map(([category, itemsCategory]) => {
+          return (
+            <div key={category} className="gap-1">
+              <div className="font-bold capitalize flex">{category}</div>
+              <ItemsList
+                items={itemsCategory}
+                saveGearList={saveGearList}
+                setSaveGearList={setSaveGearList}
+              />
+              {/* <div className="divider p-0 m-0"></div> */}
+            </div>
+          );
+        })}
       </div>
       {/* item save modal */}
       {!!initialItem && (
@@ -170,7 +184,9 @@ export function GearListSave({
 
   // save gear list
   const saveGearListMutation = useDataMutation("/api/gear-lists", "PUT", [
+    `/api/gearlists/${initialGearList.id}`,
     "/api/gear-lists",
+    "/api/gear-lists/defaults",
     "/api/items",
   ]);
   const handleSave = function () {
@@ -184,7 +200,7 @@ export function GearListSave({
 
   return (
     <dialog className="modal modal-open h-full overflow-hidden p-1">
-      <div className="modal-box w-11/12 max-w-3xl h-[90vh] flex flex-col gap-1">
+      <div className="modal-box w-[100%] h-[90%] flex flex-col gap-1">
         {/* title */}
         <div className="w-full flex-row justify-between flex items-center min-h-0">
           <div className="font-bold">Save gear list</div>
