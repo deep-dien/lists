@@ -76,7 +76,7 @@ function Item({
       {/* buttons */}
       <div className="flex gap-1">
         <div
-          className={`btn btn btn-warning ${
+          className={`btn btn-xl btn-warning ${
             item.status === "leave" ? "" : "btn-outline"
           }`}
           onClick={() => handleStatusChange(item.itemId, item.status, "leave")}
@@ -85,7 +85,7 @@ function Item({
           Leave
         </div>
         <div
-          className={`btn btn btn-success ${
+          className={`btn btn-xl btn-success ${
             item.status === "packed" ? "" : "btn-outline"
           }`}
           onClick={() => handleStatusChange(item.itemId, item.status, "packed")}
