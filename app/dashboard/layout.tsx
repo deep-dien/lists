@@ -21,9 +21,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden p-1 gap-1">
-      <header className="flex h-[55px] w-full flex-shrink-0 flex-row flex-wrap items-center justify-between">
+      <header className="flex h-[50px] w-full flex-shrink-0 flex-row flex-wrap items-center justify-between">
         {/* left */}
-        <div className="flex w-[50px] h-[50px] items-center justify-center min-h-0">
+        <div className="flex h-[40px] items-center justify-center min-h-0">
           <img
             style={{
               maxHeight: "100%",
@@ -34,7 +34,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               objectFit: "contain",
             }}
             src="/noun-checklist-circle-1676792.png"
-            alt="Jaunt"
+            alt="Gear lists"
             className="h-full object-contain bg-white"
           />
         </div>
@@ -68,7 +68,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* right */}
         <div className="flex items-center">
           <div
-            className="flex btn btn-lg btn-error"
+            className="flex btn btn-sm btn-error"
             onClick={async () => {
               await signOut({ callbackUrl: "/" });
             }}

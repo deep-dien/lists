@@ -64,35 +64,42 @@ function Item({
 }) {
   return (
     <div
-      className={`flex flex-col flex-wrap p-1 justify-between gap-1 ${statusClass(item.status)}`}
+      className={`
+        rounded-box
+        border border-base-300
+        p-2
+        ${statusClass(item.status)}
+      `}
     >
-      {/* name, weight etc */}
-      <div className="flex gap-1">
-        <div className="flex capitalize">{item.name}</div>
+      {/* name + weight */}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="font-medium capitalize">{item.name}</div>
         {item.weight !== undefined && (
-          <div className="badge flex">{item.weight}g</div>
+          <div className="badge badge-outline">{item.weight}g</div>
         )}
       </div>
+
       {/* buttons */}
-      <div className="flex gap-1">
-        <div
-          className={`btn btn-xl btn-warning ${
+      <div className="flex gap-2">
+        <button
+          className={`btn btn-xl flex-1 btn-warning ${
             item.status === "leave" ? "" : "btn-outline"
           }`}
           onClick={() => handleStatusChange(item.itemId, item.status, "leave")}
         >
           <FaPlaneDeparture />
           Leave
-        </div>
-        <div
-          className={`btn btn-xl btn-success ${
+        </button>
+
+        <button
+          className={`btn btn-xl flex-1 btn-success ${
             item.status === "packed" ? "" : "btn-outline"
           }`}
           onClick={() => handleStatusChange(item.itemId, item.status, "packed")}
         >
           <FaSuitcase />
           Packed
-        </div>
+        </button>
       </div>
     </div>
   );
@@ -135,7 +142,7 @@ export function GearListItemsSmall({ itemsGrouped, handleStatusChange }) {
 
 export function GearListItemsLarge({ itemsGrouped, handleStatusChange }) {
   return (
-    <div className="w-full h-full flex-row flex gap-1">
+    <div className="hidden md:flex w-full h-full flex-row gap-1">
       {itemsGrouped.map(([group, itemsGrouped]) => {
         if (!itemsGrouped?.length) return null;
         return (
@@ -221,24 +228,13 @@ export default function GearList() {
   const itemsGrouped = useMemo(() => {
     if (sortMode === "status") {
       const statuses = ["unpacked", "leave", "packed"];
-      return statuses
-        .map((status) => {
-          const itemsStatus = gearListItems.filter(
-            (item) => item.status === status,
-          );
-          itemsStatus.sort(compareByCategory);
-          return [status, itemsStatus];
-        })
-        .sort((a, b) => {
-          const [itemsA, itemsB] = [a[1], b[1]];
-          const packedA = Number(
-            itemsA.every((item) => item.status === "unpacked"),
-          );
-          const packedB = Number(
-            itemsB.every((item) => item.status === "unpacked"),
-          );
-          return packedB - packedA;
-        });
+      return statuses.map((status) => {
+        const itemsStatus = gearListItems.filter(
+          (item) => item.status === status,
+        );
+        itemsStatus.sort(compareByCategory);
+        return [status, itemsStatus];
+      });
     }
     if (sortMode === "category") {
       const categories = [
@@ -254,13 +250,17 @@ export default function GearList() {
         })
         .sort((a, b) => {
           const [itemsA, itemsB] = [a[1], b[1]];
-          const packedA = Number(
-            itemsA.every((item) => item.status === "packed"),
+          const packedA = Number(itemsA.every((i) => i.status === "packed"));
+          const packedB = Number(itemsB.every((i) => i.status === "packed"));
+          if (packedA !== packedB) return packedA - packedB;
+          const leaveA = Number(
+            itemsA.every((i) => ["leave", "packed"].includes(i.status)),
           );
-          const packedB = Number(
-            itemsB.every((item) => item.status === "packed"),
+          const leaveB = Number(
+            itemsB.every((i) => ["leave", "packed"].includes(i.status)),
           );
-          return packedA - packedB;
+          if (leaveA !== leaveB) return leftA - leftB;
+          return 0;
         });
     }
   }, [gearListItems, items, sortMode]);
@@ -338,15 +338,7 @@ export default function GearList() {
           <div className="order-1 font-bold capitalize">{gearList.name}</div>
           {/* sort display*/}
           <div className="gap-1 flex-row flex order-3 md:order-2">
-            <div
-              className={`flex btn btn-lg ${
-                sortMode === "status" ? "btn-active" : ""
-              }`}
-              onClick={() => setSortMode("status")}
-            >
-              <FaSortAmountDown />
-              Status
-            </div>
+            {/* category */}
             <div
               className={`flex btn btn-lg ${
                 sortMode === "category" ? "btn-active" : ""
@@ -355,6 +347,16 @@ export default function GearList() {
             >
               <FaLayerGroup />
               Category
+            </div>
+            {/* status */}
+            <div
+              className={`flex btn btn-lg ${
+                sortMode === "status" ? "btn-active" : ""
+              }`}
+              onClick={() => setSortMode("status")}
+            >
+              <FaSortAmountDown />
+              Status
             </div>
           </div>
           {/* edit or back */}
