@@ -284,12 +284,9 @@ export default function GearList() {
         },
       );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries([
-        `/api/gear-lists/${gearListId}`,
-        undefined,
-      ]);
-    },
+    // onSuccess: () => {
+    //   queryClient.invalidateQueries([`/api/gear-lists/${gearListId}`]);
+    // },
   });
 
   // reset status
