@@ -1,5 +1,26 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+  themes:
+    light --default,
+    dark --prefersdark,
+    dim;
+}
+
+/* 
+
+themes
+
+forest
+night
+silk
+acid 
+abyss
+fantasy
+cyberpunk
+emerald
+synthwave
+dim
+ */
 
 /* :root {
   --background: #ffffff;

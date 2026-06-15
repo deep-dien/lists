@@ -9,6 +9,7 @@ export function Item({
   item,
   saveGearList,
   setSaveGearList,
+  setInitialItem,
 }: {
   item: GearListModel;
 }) {
@@ -17,8 +18,17 @@ export function Item({
 
   return (
     <div className="justify-between flex flex-col w-full">
-      <div className="justify-between flex flex-row w-full">
+      <div className="justify-between flex flex-row w-full gap-1">
         <div className="flex-1 capitalize">{item.name}</div>
+        {/* edit */}
+        <div
+          className="flex min-w-0 w-[100px] btn btn-info"
+          onClick={() => {
+            setInitialItem(item);
+          }}
+        >
+          Edit
+        </div>
         {/* add/remove */}
         {/* add */}
         {!gearListItemIds.includes(item.id) && (
@@ -67,6 +77,7 @@ export function ItemsList({
   items,
   saveGearList,
   setSaveGearList,
+  setInitialItem,
 }: {
   items: [];
 }) {
@@ -84,6 +95,7 @@ export function ItemsList({
             item={item}
             saveGearList={saveGearList}
             setSaveGearList={setSaveGearList}
+            setInitialItem={setInitialItem}
           />
         );
       })}
@@ -97,20 +109,44 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
     includeDefaults: true,
   });
 
+  // categories
+  const categories = [...new Set(items.map((item) => item.category))];
+
   // sort items
   const itemsGrouped = useMemo(() => {
     if (!items) return [];
-    const categories = [...new Set(items.map((item) => item.category))];
-    return categories.map((category) => {
-      const itemsCategory = items.filter((item) => item.category === category);
-      itemsCategory.sort(
-        (a, b) =>
-          Number(saveGearList.items.map((item) => item.itemId).includes(a.id)) -
-          Number(saveGearList.items.map((item) => item.itemId).includes(b.id)),
-      );
-      return [category, itemsCategory];
-    });
-  }, [items, saveGearList.items]);
+    return categories
+      .map((category) => {
+        const itemsCategory = items.filter(
+          (item) => item.category === category,
+        );
+        itemsCategory.sort(
+          (a, b) =>
+            Number(
+              saveGearList.items.map((item) => item.itemId).includes(a.id),
+            ) -
+            Number(
+              saveGearList.items.map((item) => item.itemId).includes(b.id),
+            ),
+        );
+        return [category, itemsCategory];
+      })
+      .sort((a, b) => {
+        const [itemsA, itemsB] = [a[1], b[1]];
+        const addedA = Number(
+          itemsA.every((item) =>
+            saveGearList.items.map((i) => i.itemId).includes(item.id),
+          ),
+        );
+        const addedB = Number(
+          itemsB.every((item) =>
+            saveGearList.items.map((i) => i.itemId).includes(item.id),
+          ),
+        );
+        console.log(a[0], addedA, b[0], addedB);
+        return addedA - addedB;
+      });
+  }, [items, saveGearList.items, categories]);
 
   // search
   const [search, setSearch] = useState("");
@@ -157,6 +193,7 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
                 items={itemsCategory}
                 saveGearList={saveGearList}
                 setSaveGearList={setSaveGearList}
+                setInitialItem={setInitialItem}
               />
               {/* <div className="divider p-0 m-0"></div> */}
             </div>
@@ -165,7 +202,11 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
       </div>
       {/* item save modal */}
       {!!initialItem && (
-        <ItemSave initialItem={initialItem} setInitialItem={setInitialItem} />
+        <ItemSave
+          initialItem={initialItem}
+          setInitialItem={setInitialItem}
+          categories={categories}
+        />
       )}
     </div>
   );

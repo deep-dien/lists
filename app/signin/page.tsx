@@ -39,9 +39,9 @@ export function SignInContent() {
       <div className="flex items-center justify-center min-h-0">
         <img
           style={{
-            maxHeight: "100%",
-            maxWidth: "100%",
-            borderRadius: "50%",
+            maxHeight: "75%",
+            maxWidth: "75%",
+            borderRadius: "100%",
             backgroundColor: "white",
             clipPath: "inset(0% 0% 0% 0%)",
             objectFit: "contain",
@@ -53,32 +53,31 @@ export function SignInContent() {
       </div>
 
       {/* title */}
-      <div className="text-bold text-center w-full flex">
-        Welcome to Gear Lists
-      </div>
+      <h1 className="text-bold text-center">Welcome to Gear Lists.</h1>
 
       {/* sign in */}
       <div className="gap-5 flex flex-col">
-        <div className="text-center flex flex-row w-full items-center ">
+        <div className="text-center flex-row w-full items-center ">
           Please sign in to access your dashboard.
         </div>
-        <div className="flex w-full items-center text-center flex-col gap-5">
+        <form className="fieldset items-center flex-col flex text-center flex-col gap-5">
           <input
-            className="flex form-control w-full flex-1"
+            className="p-2 m-2 flex w-[300px] validator"
             type="email"
             required
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <div
+          <button
+            type="submit"
             onClick={(e) => handleMagicLink(e)}
             // disabled={status === "sending" || !email}
-            className={`flex items-center btn btn-success btn-lg ${status === "sending" || !email ? "btn-disabled" : ""}`}
+            className={`flex p-2 m-2 items-center w-[300px] btn btn-success btn-lg ${status === "sending" || !email ? "btn-disabled" : ""}`}
           >
             {status === "sending" ? "Sending…" : "Send magic link"}
-          </div>
-        </div>
+          </button>
+        </form>
       </div>
     </div>
   );

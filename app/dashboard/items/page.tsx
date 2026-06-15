@@ -20,7 +20,7 @@ export function Item({ item, setInitialItem }: { item: GearListModel }) {
         <div className="flex-1 capitalize">{item.name}</div>
         <div> {item.isDefault ? "Default" : ""}</div>
         <div
-          className="flex min-w-0 btn btn-sm btn-info"
+          className="flex min-w-0 btn btn-info"
           onClick={() => {
             setInitialItem(item);
           }}
@@ -28,7 +28,7 @@ export function Item({ item, setInitialItem }: { item: GearListModel }) {
           Edit
         </div>
         <div
-          className="flex min-w-0 btn btn-sm btn-error"
+          className="flex min-w-0 btn btn-error"
           onClick={() => {
             deleteMutation.mutateAsync(undefined);
           }}
@@ -107,7 +107,7 @@ export default function Items() {
   if (isLoading) return <Loading />;
 
   return (
-    <div className="flex h-full w-full min-h-0 flex-col">
+    <div className="flex h-full w-full min-h-0 flex-col gap-1">
       {/* header */}
       <div className="flex flex-shrink-0 flex-row items-center justify-between gap-1">
         {/* title  */}

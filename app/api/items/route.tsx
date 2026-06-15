@@ -11,13 +11,7 @@ export async function GET(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-  const { searchParams } = new URL(req.url);
-  const itemIds = searchParams.get("itemIds")?.split(",").filter(Boolean);
-  const includeDefaults = searchParams.get("includeDefaults") === "true";
-  const items = await itemRepo.findForUser(session.user.id, {
-    itemIds,
-    includeDefaults: true,
-  });
+  const items = await itemRepo.findForUser(session.user.id);
   return NextResponse.json(items);
 }
 

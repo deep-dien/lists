@@ -168,43 +168,39 @@ export default function GearList() {
   const gearListId = params.gearListId as string;
 
   // sort mode
-  const [sortMode, setSortMode] = useState("status");
+  const [sortMode, setSortMode] = useState("category");
 
   // get gear list
   const { data: gearList, isLoading: gearListLoading } = useData(
     `/api/gear-lists/${gearListId}`,
   );
+  console.log("gearList", gearList);
 
-  // if gear list is being shared, clone and add to users gear lists
-  const cloneGearList = useDataMutation(
-    `/api/gear-lists/${gearListId}/clone`,
-    "POST",
-    ["/api/gear-lists", "/api/items"],
-  );
-  useEffect(() => {
-    (async () => {
-      if (!gearList) return;
-      if (!session?.user?.id) return;
-      if (gearList.userId && gearList.userId === session.user.id) return;
-      if (cloneGearList.isPending) return;
-      const cloned = await cloneGearList.mutateAsync({
-        gearListId: gearListId.id,
-      });
-      router.replace(`/dashboard/gear-lists/${cloned.id}`);
-    })();
-  }, [session?.user?.id, gearList]);
+  // // if gear list is being shared, clone and add to users gear lists
+  // const cloneGearList = useDataMutation(
+  //   `/api/gear-lists/${gearListId}/clone`,
+  //   "POST",
+  //   ["/api/gear-lists", "/api/items"],
+  // );
+  // useEffect(() => {
+  //   (async () => {
+  //     if (!gearList) return;
+  //     if (!session?.user?.id) return;
+  //     if (gearList.userId && gearList.userId === session.user.id) return;
+  //     if (cloneGearList.isPending) return;
+  //     const cloned = await cloneGearList.mutateAsync({
+  //       gearListId: gearListId.id,
+  //     });
+  //     router.replace(`/dashboard/gear-lists/${cloned.id}`);
+  //   })();
+  // }, [session?.user?.id, gearList]);
 
   // go through gear list items and fetch item info for each item from items db
-  const itemIds =
-    gearList?.items?.map((item: { itemId: string }) => item.itemId) ?? [];
-  const { data: items, isLoading: itemsLoading } = useData("/api/items", {
-    itemIds,
-  });
+  const { data: items, isLoading: itemsLoading } = useData("/api/items");
   const gearListItems = useMemo(() => {
     if (!gearList?.items || !items) return [];
     return gearList.items
       .map((gearListItem) => {
-        console.log("gearListItem", gearListItem);
         const item = items.find((item) => item.id === gearListItem.itemId);
         if (!item) return null;
         return {
@@ -219,6 +215,7 @@ export default function GearList() {
       })
       .filter(Boolean);
   }, [gearList, items]);
+  console.log("items", items);
 
   // group items by status or category to display
   const itemsGrouped = useMemo(() => {
@@ -234,12 +231,12 @@ export default function GearList() {
         })
         .sort((a, b) => {
           const [itemsA, itemsB] = [a[1], b[1]];
-          const packedA = itemsA.every(
-            (item) => item.status === "unpacked",
-          ).length;
-          const packedB = itemsB.every(
-            (item) => item.status === "unpacked",
-          ).length;
+          const packedA = Number(
+            itemsA.every((item) => item.status === "unpacked"),
+          );
+          const packedB = Number(
+            itemsB.every((item) => item.status === "unpacked"),
+          );
           return packedB - packedA;
         });
     }
@@ -328,7 +325,8 @@ export default function GearList() {
 
   if (gearListLoading || itemsLoading) return <Loading />;
   if (!gearList) return <Loading />;
-  if (gearList?.isDefault) return <Loading />;
+  // comment this out
+  // if (gearList?.isDefault) return <Loading />;
 
   console.log("gearList", gearList);
 

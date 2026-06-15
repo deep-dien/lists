@@ -68,7 +68,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* right */}
         <div className="flex items-center">
           <div
-            className="flex btn-sm btn-danger"
+            className="flex btn btn-lg btn-error"
             onClick={async () => {
               await signOut({ callbackUrl: "/" });
             }}

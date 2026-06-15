@@ -52,27 +52,13 @@ class MongoItemRepo implements ItemRepo {
 
   async findForUser(userId: string, filter: ItemFilter = {}): Promise<Item[]> {
     const collection = await this.collection();
-    const conditions: Record<string, unknown>[] = [];
-
-    if (filter.includeDefaults) {
-      conditions.push({
-        $or: [{ userId }, { isDefault: true }],
-      });
-    } else {
-      conditions.push({ userId });
-    }
-
-    if (filter.itemIds?.length) {
-      conditions.push({
-        _id: {
-          $in: filter.itemIds.map((id) => new ObjectId(id)),
-        },
-      });
-    }
-
-    const query =
-      conditions.length === 1 ? conditions[0] : { $and: conditions };
-    const docs = await collection.find(query).toArray();
+    // const docs = await collection.find({ userId: userId }).toArray();
+    // comment this out
+    const docs = await collection.find({ isDefault: true }).toArray();
+    console.log(
+      docs,
+      docs.map((doc) => this.docToItem(doc)),
+    );
     return docs.map((doc) => this.docToItem(doc));
   }
 
