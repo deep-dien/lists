@@ -20,6 +20,8 @@ import {
   FaPlaneDeparture,
   FaSuitcase,
   FaSortAmountDown,
+  FaPlus,
+  FaMinus,
 } from "react-icons/fa";
 import { str_sanitize } from "@/utilities";
 
@@ -58,6 +60,7 @@ function statusClass(status: GearListItemStatus) {
 function Item({
   item,
   handleStatusChange,
+  handleQuantityChange,
 }: {
   item: any;
   handleStatusChange: any;
@@ -68,15 +71,61 @@ function Item({
         rounded-box
         border border-base-300
         p-2
+        gap-1
+        flex
+        flex-col
         ${statusClass(item.status)}
       `}
     >
-      {/* name + weight */}
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="font-medium capitalize">{item.name}</div>
+      {/* name, weight, quantity */}
+      <div className="flex items-center flex-row justify-between gap-1">
+        <div className="font-medium capitalize flex">{item.name}</div>
         {item.weight !== undefined && (
           <div className="badge badge-outline">{item.weight}g</div>
         )}
+        <div className="flex min-w-[225px] max-w-[225px] flex-row gap-1 p-1 items-center">
+          <div className="divider divider-horizontal p-0 m-0"></div>
+          <div className="flex">Unpacked quantity </div>
+          <div
+            className="btn btn-sm "
+            onClick={() => {
+              // decrease quanity by 1
+              const nextQuantity = Math.max(0, item.quantity - 1);
+              handleQuantityChange(
+                item.itemId,
+                item.quantity,
+                item.quantity - 1,
+              );
+              // if quantity hits 0, set as packed
+              if (nextQuantity === 0) {
+                handleStatusChange(item.itemId, item.status, "packed");
+              }
+            }}
+          >
+            <FaMinus />
+          </div>
+          <input
+            type="text"
+            min={0}
+            step={1}
+            value={item.quantity}
+            className="capitalize input capitalize flex-1"
+          ></input>
+          <div
+            className="btn btn-sm"
+            onClick={() => {
+              // increase quantity by 1, set as unpacked
+              handleQuantityChange(
+                item.itemId,
+                item.quantity,
+                item.quantity + 1,
+              );
+              handleStatusChange(item.itemId, item.status, "unpacked");
+            }}
+          >
+            <FaPlus />
+          </div>
+        </div>
       </div>
 
       {/* buttons */}
@@ -95,7 +144,23 @@ function Item({
           className={`btn btn-xl flex-1 btn-success ${
             item.status === "packed" ? "" : "btn-outline"
           }`}
-          onClick={() => handleStatusChange(item.itemId, item.status, "packed")}
+          onClick={() => {
+            // if quantity is 0, and click packed, set to unpacked, quantity 1
+            if (item.quantity === 0 && item.status === "packed") {
+              handleQuantityChange(item.itemId, item.quantity, 1);
+              handleStatusChange(item.itemId, item.status, "unpacked");
+              return;
+            }
+            // else get new quantity
+            const nextQuantity = Math.max(0, item.quantity - 1);
+            handleQuantityChange(item.itemId, item.quantity, nextQuantity);
+            // if zero, set as packed
+            if (nextQuantity === 0) {
+              handleStatusChange(item.itemId, item.status, "packed");
+            } else {
+              handleStatusChange(item.itemId, item.status, "unpacked");
+            }
+          }}
         >
           <FaSuitcase />
           Packed
@@ -114,7 +179,11 @@ export function GearListItemsNil() {
   );
 }
 
-export function GearListItemsSmall({ itemsGrouped, handleStatusChange }) {
+export function GearListItemsSmall({
+  itemsGrouped,
+  handleStatusChange,
+  handleQuantityChange,
+}) {
   return (
     <div className="flex flex-col gap-3 md:hidden">
       {itemsGrouped.map(([group, itemsGroup]) => {
@@ -128,6 +197,7 @@ export function GearListItemsSmall({ itemsGrouped, handleStatusChange }) {
                     key={item.itemId}
                     item={item}
                     handleStatusChange={handleStatusChange}
+                    handleQuantityChange={handleQuantityChange}
                   />
                 );
               })}
@@ -140,7 +210,11 @@ export function GearListItemsSmall({ itemsGrouped, handleStatusChange }) {
   );
 }
 
-export function GearListItemsLarge({ itemsGrouped, handleStatusChange }) {
+export function GearListItemsLarge({
+  itemsGrouped,
+  handleStatusChange,
+  handleQuantityChange,
+}) {
   return (
     <div className="hidden md:flex w-full h-full flex-row gap-1">
       {itemsGrouped.map(([group, itemsGrouped]) => {
@@ -157,6 +231,7 @@ export function GearListItemsLarge({ itemsGrouped, handleStatusChange }) {
                   key={item.itemId}
                   item={item}
                   handleStatusChange={handleStatusChange}
+                  handleQuantityChange={handleQuantityChange}
                 />
               ))}
             </div>
@@ -168,16 +243,14 @@ export function GearListItemsLarge({ itemsGrouped, handleStatusChange }) {
 }
 
 export default function GearList() {
-  const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
-  const params = useParams();
-  const gearListId = params.gearListId as string;
 
   // sort mode
   const [sortMode, setSortMode] = useState("category");
 
   // get gear list
+  const params = useParams();
+  const gearListId = params.gearListId as string;
   const { data: gearList, isLoading: gearListLoading } = useData(
     `/api/gear-lists/${gearListId}`,
   );
@@ -214,6 +287,7 @@ export default function GearList() {
           // info from gearListItem
           itemId: gearListItem.itemId,
           status: gearListItem.status ?? "unpacked",
+          quantity: gearListItem.quantity ?? 1,
           // info from item
           name: item.name ?? "Unnamed item",
           category: item.category,
@@ -289,12 +363,6 @@ export default function GearList() {
       return { itemId, status };
     },
     onMutate: async ({ itemId, status }) => {
-      console.log(
-        queryClient
-          .getQueryCache()
-          .getAll()
-          .map((q) => q.queryKey),
-      );
       queryClient.setQueryData(
         [`/api/gear-lists/${gearListId}`, undefined],
         (old: any) => {
@@ -313,10 +381,56 @@ export default function GearList() {
     // },
   });
 
+  // item is packed when unpacked quantity is 0
+  useEffect(() => {}, items);
+
+  // functions to update quantity when changed by user
+  const handleQuantityChange = (
+    itemId: string,
+    currentQuantity: GearListItemStatus,
+    nextQuantity: GearListItemStatus,
+  ) => {
+    nextQuantity = Math.max(nextQuantity, 0);
+    updateQuantity.mutate({ itemId, quantity: nextQuantity });
+  };
+  const updateQuantity = useMutation({
+    mutationFn: async ({ itemId, quantity }) => {
+      const res = await fetch(`/api/gear-lists/${gearListId}/items/${itemId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update item status");
+      }
+      return { itemId, quantity };
+    },
+    onMutate: async ({ itemId, quantity }) => {
+      queryClient.setQueryData(
+        [`/api/gear-lists/${gearListId}`, undefined],
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((item: any) =>
+              item.itemId === itemId ? { ...item, quantity } : item,
+            ),
+          };
+        },
+      );
+    },
+    // onSuccess: () => {
+    //   queryClient.invalidateQueries([`/api/gear-lists/${gearListId}`]);
+    // },
+  });
+
   // reset status
   const resetStatus = function () {
     gearList.items.map((item) => {
       updateStatus.mutate({ itemId: item.itemId, status: "unpacked" });
+      updateQuantity.mutate({ itemId: item.itemId, quantity: 1 });
     });
   };
 
@@ -392,12 +506,14 @@ export default function GearList() {
             <GearListItemsSmall
               itemsGrouped={itemsGrouped}
               handleStatusChange={handleStatusChange}
+              handleQuantityChange={handleQuantityChange}
             />
 
             {/* multiple columns, large screen only */}
             <GearListItemsLarge
               itemsGrouped={itemsGrouped}
               handleStatusChange={handleStatusChange}
+              handleQuantityChange={handleQuantityChange}
             />
           </>
         )}

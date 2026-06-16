@@ -15,14 +15,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  if (status === "unauthenticated") redirect("/signin");
+  if (status === "unauthenticated") router.push("/signin"); // Fixed redirect
 
   if (status === "loading") return <Loading />;
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden p-1 gap-1">
-      <header className="flex h-[50px] w-full flex-shrink-0 flex-row flex-wrap items-center justify-between">
-        {/* left */}
+      {/* 
+        CHANGED: Added flex-wrap, justified center for wrapped states, and h-auto to prevent clipping 
+      */}
+      <header className="flex w-full flex-shrink-0 flex-row flex-wrap gap-2 items-center justify-between h-auto p-1">
+        {/* left logo */}
         <div className="flex h-[40px] items-center justify-center min-h-0">
           <img
             style={{
@@ -38,8 +41,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             className="h-full object-contain bg-white"
           />
         </div>
-        {/* middle */}
-        <div className="flex flex-wrap items-center justify-center gap-1">
+
+        {/* 
+          middle buttons 
+          CHANGED: Removed custom ordering classes. 
+          Added order-last so that if everything wraps, these buttons drop to a full new line at the bottom.
+          Added sm:order-none so they stay in the middle when there is room.
+        */}
+        <div className="flex flex-wrap items-center justify-center gap-1 order-last w-full xs:w-auto xs:order-none">
           <div
             className={
               pathname.startsWith("/dashboard/gear-lists")
@@ -47,7 +56,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 : "btn btn-info btn-xl btn-outline "
             }
             onClick={() => {
-              redirect(`/dashboard/gear-lists`);
+              router.push(`/dashboard/gear-lists`); // Fixed redirect
             }}
           >
             Gear Lists
@@ -59,13 +68,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 : "btn btn-info btn-xl btn-outline"
             }
             onClick={() => {
-              redirect(`/dashboard/items`);
+              router.push(`/dashboard/items`); // Fixed redirect
             }}
           >
             Items
           </div>
         </div>
-        {/* right */}
+
+        {/* right signout */}
         <div className="flex items-center">
           <div
             className="flex btn btn-sm btn-error"

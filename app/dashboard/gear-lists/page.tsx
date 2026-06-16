@@ -29,7 +29,7 @@ export function GearList({
         <div className="flex-1 capitalize">{gearList.name}</div>
         {/* go to */}
         <div
-          className="flex min-w-0 btn btn-success"
+          className="flex min-w-0 btn btn-success btn-lg"
           onClick={() => {
             redirect(`/dashboard/gear-lists/${gearList.id}`);
           }}
@@ -38,7 +38,7 @@ export function GearList({
         </div>
         {/* edit */}
         <div
-          className="flex min-w-0 btn btn-info"
+          className="flex min-w-0 btn btn-info btn-lg"
           onClick={() => {
             setInitialGearList(gearList);
           }}
@@ -47,7 +47,7 @@ export function GearList({
         </div>
         {/* delete */}
         <div
-          className="flex min-w-0 btn btn-error"
+          className="flex min-w-0 btn btn-error btn-lg"
           onClick={() => {
             deleteMutation.mutateAsync(undefined);
           }}
@@ -98,7 +98,7 @@ export function GearListDefault({ gearList }) {
   return (
     <div
       key={gearList.id}
-      className="flex btn btn btn-outline capitalize"
+      className="flex btn btn-outline capitalize"
       onClick={() => {
         cloneGearList.mutateAsync(undefined);
       }}
@@ -126,10 +126,12 @@ export default function GearLists() {
   // set initial gear list for gear list editing
   const [initialGearList, setInitialGearList] = useState(null);
 
+  console.log("gearListsDefaults", gearListsDefaults?.length);
   if (isLoading) return <Loading />;
 
   return (
     <div className="flex h-full w-full min-h-0 flex-col">
+      {/* header */}
       <div className="flex flex-shrink-0 flex-col items-center justify-between gap-1">
         <div className="flex flex-shrink-0 flex-row w-full items-center justify-between gap-1">
           {/* title  */}
@@ -146,7 +148,7 @@ export default function GearLists() {
           </div>
         </div>
         {/* defaults */}
-        {!!gearListsDefaults && (
+        {!!gearListsDefaults?.length && (
           <div className="flex flex-row flex-wrap flex-shrink-0 items-center w-full  gap-1">
             <div className="flex">Seed from defaults:</div>
             <div className="flex flex-wrap gap-1">
@@ -159,13 +161,16 @@ export default function GearLists() {
           </div>
         )}
       </div>
+      {/* divider */}
       <div className="divider m-0 p-0"></div>
+      {/* gear lists */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <GearListList
           gearLists={gearListsDefaults}
           setInitialGearList={setInitialGearList}
         />
       </div>
+      {/* create new */}
       <div
         className="btn btn-success btn-xl fixed bottom-2 right-2 z-50"
         onClick={() => {

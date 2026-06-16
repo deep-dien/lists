@@ -152,14 +152,17 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
   const [search, setSearch] = useState("");
   const itemsFiltered = itemsGrouped
     .map(([category, itemsCategory]) => {
-      const itemsFilter = itemsCategory.filter((item) =>
-        item.name.toLowerCase().includes(search.toLowerCase()),
+      const itemsFilter = itemsCategory.filter(
+        (item) =>
+          item.name.toLowerCase().includes(search.toLowerCase()) ||
+          category.includes(search),
       );
       return [category, itemsFilter];
     })
-    .filter(([category, itemsFilter]) => {
-      return itemsFilter?.length;
-    });
+    .filter(
+      ([category, itemsCategory]) =>
+        !!itemsCategory?.length || category.includes(search),
+    );
 
   // new item
   const [initialItem, setInitialItem] = useState(null);

@@ -94,12 +94,17 @@ export default function Items() {
   const [search, setSearch] = useState("");
   const itemsFiltered = itemsGrouped
     .map(([category, itemsCategory]) => {
-      const itemsFilter = itemsCategory.filter((item) =>
-        item.name.toLowerCase().includes(search.toLowerCase()),
+      const itemsFilter = itemsCategory.filter(
+        (item) =>
+          item.name.toLowerCase().includes(search.toLowerCase()) ||
+          category.includes(search),
       );
       return [category, itemsFilter];
     })
-    .filter(([category, itemsCategory]) => !!itemsCategory?.length);
+    .filter(
+      ([category, itemsCategory]) =>
+        !!itemsCategory?.length || category.includes(search),
+    );
 
   // initial item for item save
   const [initialItem, setInitialItem] = useState(null);
