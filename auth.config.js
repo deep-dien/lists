@@ -1,3 +1,7 @@
+import { MongoUserRepo } from "@/lib/adapters/mongoUserRepo";
+
+const userRepo = new MongoUserRepo();
+
 export const authConfig = {
   pages: {
     signIn: "/signin",
@@ -20,12 +24,17 @@ export const authConfig = {
     },
     async jwt({ token, user }) {
       if (user) {
+        const dbUser = await userRepo.findById({
+          id: user.id,
+        });
         token.id = user.id;
+        token.canModifyDefaults = dbUser.canModifyDefaults;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.id) {
+        session.user.canModifyDefaults = token.canModifyDefaults;
         session.user.id = token.id;
       }
       return session;

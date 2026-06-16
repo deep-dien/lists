@@ -10,6 +10,7 @@ export interface UserDoc {
   _id: ObjectId;
   email: string;
   name?: string;
+  canModifyDefaults?: boolean;
 }
 
 class MongoUserRepo implements UserRepo {
@@ -26,8 +27,9 @@ class MongoUserRepo implements UserRepo {
   private docToUser(doc: UserDoc): User {
     return new User({
       id: doc._id.toString(),
-      name: doc.name,
-      email: doc.email,
+      name: doc?.name,
+      email: doc?.email,
+      canModifyDefaults: doc?.canModifyDefaults,
     });
   }
 

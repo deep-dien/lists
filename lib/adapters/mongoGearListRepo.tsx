@@ -111,6 +111,7 @@ class MongoGearListRepo implements GearListRepo {
     }
     return { success: true, error: null };
   }
+
   async addItem(
     gearListId: string,
     item: GearListItem,

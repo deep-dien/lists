@@ -6,6 +6,7 @@ import {
   GearListItemStatus,
   STATUS_SORT_ORDER,
 } from "@/lib/domain/models/gearList";
+import { Copy } from "@/components/Copy";
 import { useDataMutation } from "@/mutators";
 import { useData } from "@/queries";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -112,13 +113,7 @@ function Item({
           >
             <FaMinus />
           </div>
-          <input
-            type="text"
-            min={0}
-            step={1}
-            value={item.quantity}
-            className="capitalize input capitalize flex-1"
-          ></input>
+          <div className="badge badge-xl w-[35px]">{item.quantity}</div>
           <div
             className="btn btn-sm"
             onClick={() => {
@@ -251,6 +246,13 @@ export function GearListItemsLarge({
 }
 
 export default function GearList() {
+  // router;
+  const router = useRouter();
+
+  // session
+  const { data: session } = useSession();
+
+  // query
   const queryClient = useQueryClient();
 
   // sort mode
@@ -263,32 +265,45 @@ export default function GearList() {
     `/api/gear-lists/${gearListId}`,
   );
 
-  // // if gear list is being shared, clone and add to users gear lists
-  // const cloneGearList = useDataMutation(
-  //   `/api/gear-lists/${gearListId}/clone`,
-  //   "POST",
-  //   ["/api/gear-lists", "/api/items"],
-  // );
-  // useEffect(() => {
-  //   (async () => {
-  //     if (!gearList) return;
-  //     if (!session?.user?.id) return;
-  //     if (gearList.userId && gearList.userId === session.user.id) return;
-  //     if (cloneGearList.isPending) return;
-  //     const cloned = await cloneGearList.mutateAsync({
-  //       gearListId: gearListId.id,
-  //     });
-  //     router.replace(`/dashboard/gear-lists/${cloned.id}`);
-  //   })();
-  // }, [session?.user?.id, gearList]);
+  // if gear list is being shared, clone and add to users gear lists
+  const cloneGearList = useDataMutation(
+    `/api/gear-lists/${gearListId}/clone`,
+    "POST",
+    ["/api/gear-lists", "/api/items"],
+  );
+  useEffect(() => {
+    (async () => {
+      if (!gearList) return;
+      if (!session?.user?.id) return;
+      if (gearList.userId && gearList.userId === session.user.id) return;
+      const cloned = await cloneGearList.mutateAsync({
+        gearListId: gearListId.id,
+      });
+      router.replace(`/dashboard/gear-lists/${cloned.id}`);
+    })();
+  }, [session?.user?.id, gearList]);
 
   // go through gear list items and fetch item info for each item from items db
-  const { data: items, isLoading: itemsLoading } = useData("/api/items");
+  const { data: items = [], isLoading: itemsLoading } = useData("/api/items");
+  const { data: itemsDefaults = [], isLoading: itemsLoadingDefaults } = useData(
+    "/api/items/defaults",
+  );
+
+  // items all
+  const itemsAll = useMemo(() => {
+    if (itemsLoading || itemsLoadingDefaults) return [];
+    if (session?.user?.canModifyDefaults) {
+      return [...items, ...itemsDefaults];
+    } else {
+      return items;
+    }
+  }, [items, itemsDefaults, session?.user?.canModifyDefaults]);
+
   const gearListItems = useMemo(() => {
-    if (!gearList?.items || !items) return [];
+    if (!gearList?.items || !items || !itemsDefaults) return [];
     return gearList.items
       .map((gearListItem) => {
-        const item = items.find((item) => item.id === gearListItem.itemId);
+        const item = itemsAll.find((item) => item.id === gearListItem.itemId);
         if (!item) return null;
         return {
           // info from gearListItem
@@ -389,9 +404,6 @@ export default function GearList() {
     // },
   });
 
-  // item is packed when unpacked quantity is 0
-  useEffect(() => {}, items);
-
   // functions to update quantity when changed by user
   const handleQuantityChange = (
     itemId: string,
@@ -447,10 +459,9 @@ export default function GearList() {
 
   if (gearListLoading || itemsLoading) return <Loading />;
   if (!gearList) return <Loading />;
-  // comment this out
-  // if (gearList?.isDefault) return <Loading />;
-
-  console.log("gearList", gearList);
+  if (gearList?.isDefault && !session?.user?.canModifyDefaults)
+    return <Loading />;
+  if (cloneGearList.isPending) return <Loading />;
 
   return (
     <div className="flex h-full w-full min-h-0 flex-col">
@@ -481,17 +492,22 @@ export default function GearList() {
               Status
             </div>
           </div>
-          {/* edit or back */}
+          {/* share, reset, edit, back */}
           <div className="order-2 md:order-3 flex flex-row gap-1">
+            {/* share */}
+            <Copy endpoint={`/dashboard/gear-lists/${gearList.id}`} />
+            {/* reset */}
             <div className="btn btn-lg btn-warning" onClick={resetStatus}>
               <RiResetLeftFill />
             </div>
+            {/* edit  */}
             <div
               className="btn btn-lg btn-info"
               onClick={() => setInitialGearList(gearList)}
             >
               <FaEdit />
             </div>
+            {/* back */}
             <div
               className="btn btn-lg"
               onClick={() => redirect("/dashboard/gear-lists")}

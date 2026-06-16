@@ -14,6 +14,7 @@ export interface ItemDoc {
   weight?: unknown;
   category?: string;
   isDefault?: boolean;
+  clonedId?: string;
 }
 
 class MongoItemRepo implements ItemRepo {
@@ -36,6 +37,7 @@ class MongoItemRepo implements ItemRepo {
       weight: parseItemWeight(doc.weight),
       category: doc.category,
       isDefault: doc.isDefault,
+      clonedId: doc?.clonedId,
     });
   }
 
@@ -50,15 +52,20 @@ class MongoItemRepo implements ItemRepo {
     return docs.map((doc) => this.docToItem(doc));
   }
 
-  async findForUser(userId: string, filter: ItemFilter = {}): Promise<Item[]> {
+  async findForUser(userId: string): Promise<Item[]> {
     const collection = await this.collection();
-    // const docs = await collection.find({ userId: userId }).toArray();
-    // comment this out
-    const docs = await collection.find({ isDefault: true }).toArray();
+    const docs = await collection.find({ userId: userId }).toArray();
     console.log(
       docs,
       docs.map((doc) => this.docToItem(doc)),
     );
+    return docs.map((doc) => this.docToItem(doc));
+  }
+
+  async findDefaults(): Promise<Item[]> {
+    const collection = await this.collection();
+    const docs = await collection.find({ isDefault: true }).toArray();
+
     return docs.map((doc) => this.docToItem(doc));
   }
 
@@ -75,6 +82,7 @@ class MongoItemRepo implements ItemRepo {
         weight: item.weight,
         category: item.category,
         isDefault: item.isDefault,
+        clonedId: item.clonedId,
       });
       if (!result.acknowledged) return null;
       return this.docToItem({ _id: result.insertedId, ...result });

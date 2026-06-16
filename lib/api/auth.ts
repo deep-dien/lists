@@ -16,34 +16,34 @@ export async function requireUser(): Promise<
       response: NextResponse.json({ message: "Unauthorized" }, { status: 401 }),
     };
   }
-  return { user: { id: session.user.id } };
+  return { ...session.user };
 }
 
-export function canModifyGearList(
-  gearList: GearList,
-  userId: string,
-): NextResponse | null {
-  if (gearList.isDefault) {
-    return NextResponse.json(
-      { message: "Default gear lists cannot be modified" },
-      { status: 403 },
-    );
-  }
-  if (gearList.userId !== userId) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-  return null;
-}
+// export function canModifyGearList(
+//   gearList: GearList,
+//   userId: string,
+// ): NextResponse | null {
+//   if (gearList.isDefault) {
+//     return NextResponse.json(
+//       { message: "Default gear lists cannot be modified" },
+//       { status: 403 },
+//     );
+//   }
+//   if (gearList.userId !== userId) {
+//     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+//   }
+//   return null;
+// }
 
-export function canModifyItem(item: Item, userId: string): NextResponse | null {
-  if (item.isDefault) {
-    return NextResponse.json(
-      { message: "Default items cannot be modified" },
-      { status: 403 },
-    );
-  }
-  if (item.userId !== userId) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-  return null;
-}
+// export function canModifyItem(item: Item, userId: string): NextResponse | null {
+//   if (item.isDefault) {
+//     return NextResponse.json(
+//       { message: "Default items cannot be modified" },
+//       { status: 403 },
+//     );
+//   }
+//   if (item.userId !== userId) {
+//     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+//   }
+//   return null;
+// }

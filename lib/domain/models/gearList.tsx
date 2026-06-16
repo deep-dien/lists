@@ -9,14 +9,17 @@ export const STATUS_SORT_ORDER: Record<GearListItemStatus, number> = {
 type GearListItemInput = {
   itemId: string;
   status: GearListItemStatus;
+  quantity: number;
 };
 
 export class GearListItem {
   itemId: string;
   status: GearListItemStatus;
+  quantity: number;
   constructor(init: GearListItem) {
     this.itemId = init.itemId;
     this.status = init.status;
+    this.quantity = init.quantity;
   }
 }
 

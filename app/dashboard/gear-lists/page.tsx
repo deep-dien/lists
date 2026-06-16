@@ -4,13 +4,16 @@ import { Loading } from "@/components/Loading";
 import { GearList as GearListModel } from "@/lib/domain/models/gearList";
 import { useData } from "@/queries";
 import { useDataMutation } from "@/mutators";
-import { useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { redirect } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
+import { IoReturnDownBack, IoReturnDownForward } from "react-icons/io5";
 
+import { Copy } from "@/components/Copy";
 import { GearListSave } from "@/components/GearListSave";
+import { useSession } from "next-auth/react";
 
 export function GearList({
   gearList,
@@ -29,15 +32,9 @@ export function GearList({
       <div className="justify-between flex flex-row w-full items-center gap-1">
         {/* title */}
         <div className="flex-1 capitalize">{gearList.name}</div>
-        {/* go to */}
-        <div
-          className="flex min-w-0 btn btn-success btn-lg"
-          onClick={() => {
-            redirect(`/dashboard/gear-lists/${gearList.id}`);
-          }}
-        >
-          Go to
-        </div>
+        {gearList?.isDefault ? <div className="badge">Default</div> : null}
+        {/* copy */}
+        <Copy endpoint={`/dashboard/gear-lists/${gearList.id}`} />
         {/* edit */}
         <div
           className="flex min-w-0 btn btn-info btn-lg"
@@ -55,6 +52,15 @@ export function GearList({
           }}
         >
           <MdDelete />
+        </div>
+        {/* go to */}
+        <div
+          className="flex min-w-0 btn btn-success btn-lg"
+          onClick={() => {
+            redirect(`/dashboard/gear-lists/${gearList.id}`);
+          }}
+        >
+          <IoReturnDownForward />
         </div>
       </div>
       <div className="divider p-1 m-0"></div>
@@ -111,25 +117,44 @@ export function GearListDefault({ gearList }) {
 }
 
 export default function GearLists() {
+  // session
+  const { data: session, status } = useSession();
+
   // state
-  const { data: gearLists, isLoading } = useData("/api/gear-lists");
+  const { data: gearLists = [], isLoading: gearListsLoading } =
+    useData("/api/gear-lists");
+
+  // filter for defaults
+  const { data: gearListsDefaults = [], isLoading: gearListsDefaultsLoading } =
+    useData("/api/gear-lists/defaults");
+
+  // gear lists all
+  const gearListsAll = useMemo(() => {
+    if (gearListsLoading || gearListsDefaultsLoading) return [];
+    if (session?.user?.canModifyDefaults) {
+      return [...gearLists, ...gearListsDefaults];
+    } else {
+      return gearLists;
+    }
+  }, [gearLists, gearListsDefaults, session?.user?.canModifyDefaults]);
+
+  // gearListsAll sort
+  gearListsAll.sort((a, b) => {
+    if (a.isDefault != b.isDefault) return a.isDefault - b.isDefault;
+    return a.name.localeCompare(b.name);
+  });
 
   // filter for search term and no defau;t
   const [search, setSearch] = useState("");
-  const gearListsSearch = (gearLists ?? []).filter(
-    (gearList: GearListModel) =>
-      gearList.name.toLowerCase().includes(search.toLowerCase()) &&
-      !gearList?.isDefault,
+  const gearListsSearch = gearListsAll.filter((gearList: GearListModel) =>
+    gearList.name.toLowerCase().includes(search.toLowerCase()),
   );
-
-  // filter for defaults
-  const { data: gearListsDefaults = [] } = useData("/api/gear-lists/defaults");
 
   // set initial gear list for gear list editing
   const [initialGearList, setInitialGearList] = useState(null);
 
-  console.log("gearListsDefaults", gearListsDefaults?.length);
-  if (isLoading) return <Loading />;
+  if (gearListsLoading || gearListsDefaultsLoading) return <Loading />;
+  if (status === "loading") return <Loading />;
 
   return (
     <div className="flex h-full w-full min-h-0 flex-col">
@@ -168,7 +193,7 @@ export default function GearLists() {
       {/* gear lists */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <GearListList
-          gearLists={gearListsDefaults}
+          gearLists={gearListsSearch}
           setInitialGearList={setInitialGearList}
         />
       </div>

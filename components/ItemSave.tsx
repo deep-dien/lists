@@ -1,8 +1,11 @@
 import { FaTimes } from "react-icons/fa";
 import { useDataMutation } from "@/mutators";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 export function ItemSave({ initialItem, setInitialItem, categories = [] }) {
+  const { data: session } = useSession();
+
   //   item
   const [saveItem, setSaveItem] = useState(initialItem);
 
@@ -101,6 +104,24 @@ export function ItemSave({ initialItem, setInitialItem, categories = [] }) {
               }}
             />
           </div>
+
+          {/* default */}
+          {session?.user.canModifyDefaults && (
+            <div className="flex flex-row gap-1">
+              <div>Default</div>
+              <input
+                type="checkbox"
+                className="checkbox"
+                defaultChecked={initialItem?.isDefault}
+                onChange={(e) => {
+                  console.log(e.target.value);
+                  setSaveItem((prev) => {
+                    return { ...prev, isDefault: e.target.value };
+                  });
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="divider p-0 m-0"></div>

@@ -15,27 +15,53 @@ export class CloneGearListService {
       throw new Error("Gear list not found");
     }
 
-    const itemIds = sourceGearList.items
+    // list of items from the source gear list
+    const sourceItemIds = sourceGearList.items
       .map((item) => item.itemId)
       .filter(Boolean);
-    const sourceItems = await this.itemRepo.findByIds(itemIds);
+    const sourceItems = await this.itemRepo.findByIds(sourceItemIds);
 
+    // get a list of items for that user
+    const userItems = await this.itemRepo.findForUser(userId);
+
+    // create list of cloned items
+    // cycle through source items
     const clonedItems: GearListItem[] = [];
     for (const item of sourceItems) {
-      const clonedItem: Partial<Item> = {
-        userId,
-        name: item.name,
-        description: item.description,
-        weight: item.weight,
-        category: item.category,
-        isDefault: false,
-      };
-      const createdItem = await this.itemRepo.upsert(clonedItem);
-      if (createdItem?.id) {
+      // if source item has already been cloned into user, return null
+      const clonedItem = userItems.find((i) => i.clonedId === item.id);
+
+      console.log("clonedItem", clonedItem);
+      console.log("item", item);
+
+      // only clone item if it hasnt been cloned
+      if (!clonedItem) {
+        const cloneItem: Partial<Item> = {
+          userId,
+          clonedId: item.id,
+          name: item.name,
+          description: item.description,
+          weight: item.weight,
+          category: item.category,
+          isDefault: false,
+        };
+        const createdItem = await this.itemRepo.upsert(cloneItem);
+        if (createdItem?.id) {
+          clonedItems.push(
+            new GearListItem({
+              itemId: createdItem.id,
+              status: "unpacked",
+              quantity: 1,
+            }),
+          );
+        }
+        // else push reference to existing item
+      } else {
         clonedItems.push(
           new GearListItem({
-            itemId: createdItem.id,
+            itemId: clonedItem.id,
             status: "unpacked",
+            quantity: 1,
           }),
         );
       }

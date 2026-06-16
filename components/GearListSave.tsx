@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useData } from "@/queries";
 import { FaEdit } from "react-icons/fa";
 import { ItemSave } from "@/components/ItemSave";
+import { useSession } from "next-auth/react";
+import { FaShareAlt } from "react-icons/fa";
 
 export function Item({
   item,
@@ -104,22 +106,36 @@ export function ItemsList({
 }
 
 export function GearListItems({ saveGearList, setSaveGearList }) {
+  // session
+  const { data: session } = useSession();
+
   // items
-  const { data: items = [], isLoading } = useData("/api/items", {
-    includeDefaults: true,
-  });
+  const { data: items = [], isLoading } = useData("/api/items");
+
+  // itemsDefaults
+  const { data: itemsDefaults = [], isLoading: isLoadingDefaults } = useData(
+    "/api/items/defaults",
+  );
+
+  // items all
+  let itemsAll = [];
+  if (session?.user?.canModifyDefaults) {
+    itemsAll = [...items, ...itemsDefaults];
+  } else {
+    itemsAll = items;
+  }
 
   // categories
-  const categories = [...new Set(items.map((item) => item.category))]
+  const categories = [...new Set(itemsAll.map((item) => item.category))]
     .filter(Boolean)
     .sort();
 
   // sort items
   const itemsGrouped = useMemo(() => {
-    if (!items) return [];
+    if (!itemsAll) return [];
     return categories
       .map((category) => {
-        const itemsCategory = items.filter(
+        const itemsCategory = itemsAll.filter(
           (item) => item.category === category,
         );
         itemsCategory.sort((a, b) => {
@@ -148,7 +164,9 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
         );
         return addedA - addedB;
       });
-  }, [items, saveGearList.items, categories]);
+  }, [itemsAll, saveGearList.items, categories]);
+
+  console.log(itemsGrouped);
 
   // search
   const [search, setSearch] = useState("");
@@ -165,6 +183,8 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
       ([category, itemsCategory]) =>
         !!itemsCategory?.length || category.includes(search),
     );
+
+  console.log(itemsFiltered);
 
   // new item
   const [initialItem, setInitialItem] = useState(null);
@@ -228,6 +248,9 @@ export function GearListSave({
   setInitialGearList,
   categories = [],
 }) {
+  // session
+  const { data: session } = useSession();
+
   //   gear list
   const [saveGearList, setSaveGearList] = useState(initialGearList);
 
@@ -281,7 +304,24 @@ export function GearListSave({
               setSaveGearList={setSaveGearList}
             />
           </div>
-        </div>
+        </div>{" "}
+        {/* default */}
+        {session?.user.canModifyDefaults && (
+          <div className="flex flex-row gap-1">
+            <div>Default</div>
+            <input
+              type="checkbox"
+              className="checkbox"
+              defaultChecked={initialGearList?.isDefault}
+              onChange={(e) => {
+                console.log(e.target.value);
+                saveGearList((prev) => {
+                  return { ...prev, isDefault: e.target.value };
+                });
+              }}
+            />
+          </div>
+        )}
         <div className="divider p-0 m-0"></div>
         <div className="flex flex-row items-center gap-1">
           <div className="btn btn-success btn flex-1" onClick={handleSave}>

@@ -11,6 +11,7 @@ import { FaEdit } from "react-icons/fa";
 import { redirect } from "next/navigation";
 
 import { ItemSave } from "@/components/ItemSave";
+import { useSession } from "next-auth/react";
 
 export function Item({ item, setInitialItem }: { item: GearListModel }) {
   const deleteMutation = useDataMutation(`/api/items/${item.id}`, "DELETE", [
@@ -21,7 +22,7 @@ export function Item({ item, setInitialItem }: { item: GearListModel }) {
     <div className="justify-between flex flex-col w-full p-1 items-center">
       <div className="justify-between flex flex-row w-full gap-1 items-center">
         <div className="flex-1 capitalize">{item.name}</div>
-        <div> {item.isDefault ? "Default" : ""}</div>
+        {item?.isDefault ? <div className="badge">Default</div> : null}
         <div
           className="flex min-w-0 btn btn-info"
           onClick={() => {
@@ -74,22 +75,41 @@ export function ItemsList({
 }
 
 export default function Items() {
+  // session
+  const { data: session } = useSession();
+
   // items
-  const { data: items = [], isLoading } = useData("/api/items", {
-    includeDefaults: true,
-  });
+  const { data: items = [], isLoading } = useData("/api/items");
+
+  // items default
+  const { data: itemsDefaults = [] } = useData("/api/items/defaults");
+
+  console.log("itemsDefaults", itemsDefaults);
 
   // categories
   const categories = [...new Set(items.map((item) => item.category))]
     .filter(Boolean)
     .sort();
 
+  // items all
+  let itemsAll = [];
+  if (session?.user?.canModifyDefaults) {
+    itemsAll = [...items, ...itemsDefaults];
+  } else {
+    itemsAll = items;
+  }
+
   // sort items
   const itemsGrouped = useMemo(() => {
-    if (!items) return [];
+    if (!itemsAll) return [];
     return categories.map((category) => {
-      const itemsCategory = items.filter((item) => item.category === category);
-      itemsCategory.sort((a, b) => a.name.localeCompare(b.name));
+      const itemsCategory = itemsAll.filter(
+        (item) => item.category === category,
+      );
+      itemsCategory.sort((a, b) => {
+        if (a?.isDefault != b?.isDefault) return b.isDefault - a.isDefault;
+        return a.name.localeCompare(b.name);
+      });
       return [category, itemsCategory];
     });
   }, [items]);
@@ -101,7 +121,8 @@ export default function Items() {
       const itemsFilter = itemsCategory.filter(
         (item) =>
           item.name.toLowerCase().includes(search.toLowerCase()) ||
-          category.includes(search),
+          category.includes(search) ||
+          (search.includes("default") && item?.isDefault),
       );
       return [category, itemsFilter];
     })
@@ -138,6 +159,7 @@ export default function Items() {
 
       {/* items */}
       <div className="overflow-y-auto w-full">
+        {/* {!itemsFiltered?.length && <div>No items found</div>} */}
         {itemsFiltered.map(([category, itemsCategory]) => {
           return (
             <div key={category} className="gap-1">

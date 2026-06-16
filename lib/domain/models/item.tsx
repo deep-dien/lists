@@ -31,6 +31,7 @@ export class Item {
   weight?: number;
   category?: string;
   isDefault?: boolean;
+  clonedId?: string;
   constructor(data: Partial<Item> = {}) {
     Object.assign(this, data);
   }
@@ -44,4 +45,5 @@ interface ItemModal {
   description?: string;
   weight?: number;
   category?: string;
+  clonedId?: string;
 }

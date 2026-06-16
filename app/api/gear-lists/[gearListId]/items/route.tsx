@@ -1,8 +1,5 @@
 import { MongoGearListRepo } from "@/lib/adapters/mongoGearListRepo";
-import {
-  canModifyGearList,
-  requireUser,
-} from "@/lib/api/auth";
+import { requireUser } from "@/lib/api/auth";
 import { GearListItem } from "@/lib/domain/models/gearList";
 import { NextResponse } from "next/server";
 
@@ -19,9 +16,6 @@ export async function POST(req: Request, { params }: RouteParams) {
   if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
-
-  const forbidden = canModifyGearList(existing, authResult.user.id);
-  if (forbidden) return forbidden;
 
   const body = (await req.json()) as GearListItem;
   const updated = await gearListRepo.addItem(
