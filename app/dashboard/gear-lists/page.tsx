@@ -7,6 +7,8 @@ import { useDataMutation } from "@/mutators";
 import { useState } from "react";
 import { redirect } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
+import { FaEdit } from "react-icons/fa";
+import { MdDelete } from "react-icons/md";
 
 import { GearListSave } from "@/components/GearListSave";
 
@@ -43,7 +45,7 @@ export function GearList({
             setInitialGearList(gearList);
           }}
         >
-          Edit
+          <FaEdit />
         </div>
         {/* delete */}
         <div
@@ -52,7 +54,7 @@ export function GearList({
             deleteMutation.mutateAsync(undefined);
           }}
         >
-          Delete
+          <MdDelete />
         </div>
       </div>
       <div className="divider p-1 m-0"></div>

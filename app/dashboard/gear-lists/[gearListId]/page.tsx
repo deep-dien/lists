@@ -22,8 +22,16 @@ import {
   FaSortAmountDown,
   FaPlus,
   FaMinus,
+  FaEdit,
 } from "react-icons/fa";
+import { RiResetLeftFill } from "react-icons/ri";
+import { IoReturnDownBack, IoReturnDownForward } from "react-icons/io5";
+
 import { str_sanitize } from "@/utilities";
+
+function compareByName(a, b) {
+  return a.name.localeCompare(b.name);
+}
 
 function compareByWeight(a, b) {
   return b.weight - a.weight;
@@ -35,7 +43,7 @@ function compareByStatus(a, b) {
   const catA = str_sanitize(a.category?.trim() || "Uncategorized");
   const catB = str_sanitize(b.category?.trim() || "Uncategorized");
   if (catA !== catB) return compareByCategory(a, b);
-  return compareByWeight(a, b);
+  return compareByName(a, b);
 }
 
 function compareByCategory(a, b) {
@@ -43,7 +51,7 @@ function compareByCategory(a, b) {
   const catB = str_sanitize(b.category?.trim() || "Uncategorized");
   if (catA !== catB) return catA.localeCompare(catB);
   if (a.status !== b.status) return compareByStatus(a, b);
-  return compareByWeight(a, b);
+  return compareByName(a, b);
 }
 
 function statusClass(status: GearListItemStatus) {
@@ -254,7 +262,6 @@ export default function GearList() {
   const { data: gearList, isLoading: gearListLoading } = useData(
     `/api/gear-lists/${gearListId}`,
   );
-  console.log("gearList", gearList);
 
   // // if gear list is being shared, clone and add to users gear lists
   // const cloneGearList = useDataMutation(
@@ -296,7 +303,11 @@ export default function GearList() {
       })
       .filter(Boolean);
   }, [gearList, items]);
-  console.log("items", items);
+
+  // get categories
+  const categories = [
+    ...new Set(gearListItems.map((item) => item.category)),
+  ].sort();
 
   // group items by status or category to display
   const itemsGrouped = useMemo(() => {
@@ -311,9 +322,6 @@ export default function GearList() {
       });
     }
     if (sortMode === "category") {
-      const categories = [
-        ...new Set(gearListItems.map((item) => item.category)),
-      ].sort();
       return categories
         .map((category) => {
           const itemsCategory = gearListItems.filter(
@@ -476,19 +484,19 @@ export default function GearList() {
           {/* edit or back */}
           <div className="order-2 md:order-3 flex flex-row gap-1">
             <div className="btn btn-lg btn-warning" onClick={resetStatus}>
-              Reset
+              <RiResetLeftFill />
             </div>
             <div
               className="btn btn-lg btn-info"
               onClick={() => setInitialGearList(gearList)}
             >
-              Edit
+              <FaEdit />
             </div>
             <div
               className="btn btn-lg"
               onClick={() => redirect("/dashboard/gear-lists")}
             >
-              Back
+              <IoReturnDownBack />
             </div>
           </div>
         </div>

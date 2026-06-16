@@ -5,6 +5,9 @@ import { GearList as GearListModel } from "@/lib/domain/models/gearList";
 import { useData } from "@/queries";
 import { useDataMutation } from "@/mutators";
 import { useState, useMemo } from "react";
+import { MdDelete } from "react-icons/md";
+import { FaEdit } from "react-icons/fa";
+
 import { redirect } from "next/navigation";
 
 import { ItemSave } from "@/components/ItemSave";
@@ -25,7 +28,7 @@ export function Item({ item, setInitialItem }: { item: GearListModel }) {
             setInitialItem(item);
           }}
         >
-          Edit
+          <FaEdit />
         </div>
         <div
           className="flex min-w-0 btn btn-error"
@@ -33,7 +36,7 @@ export function Item({ item, setInitialItem }: { item: GearListModel }) {
             deleteMutation.mutateAsync(undefined);
           }}
         >
-          Delete
+          <MdDelete />
         </div>
       </div>
       <div className="divider p-0 m-0"></div>
@@ -77,15 +80,16 @@ export default function Items() {
   });
 
   // categories
-  const categories = [...new Set(items.map((item) => item.category))].filter(
-    Boolean,
-  );
+  const categories = [...new Set(items.map((item) => item.category))]
+    .filter(Boolean)
+    .sort();
 
   // sort items
   const itemsGrouped = useMemo(() => {
     if (!items) return [];
     return categories.map((category) => {
       const itemsCategory = items.filter((item) => item.category === category);
+      itemsCategory.sort((a, b) => a.name.localeCompare(b.name));
       return [category, itemsCategory];
     });
   }, [items]);

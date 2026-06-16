@@ -24,7 +24,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* 
         CHANGED: Added flex-wrap, justified center for wrapped states, and h-auto to prevent clipping 
       */}
-      <header className="flex w-full flex-shrink-0 flex-row flex-wrap gap-2 items-center justify-between h-auto p-1">
+      <header className="flex w-full flex-shrink-0 flex-row flex-wrap gap-1 items-center justify-between h-auto p-1">
         {/* left logo */}
         <div className="flex h-[40px] items-center justify-center min-h-0">
           <img
@@ -52,8 +52,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div
             className={
               pathname.startsWith("/dashboard/gear-lists")
-                ? "btn btn-info btn-xl btn-outline btn-active"
-                : "btn btn-info btn-xl btn-outline "
+                ? "p-2 btn btn-info btn-xl btn-outline btn-active"
+                : "p-2 btn btn-info btn-xl btn-outline "
             }
             onClick={() => {
               router.push(`/dashboard/gear-lists`); // Fixed redirect
@@ -64,8 +64,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div
             className={
               pathname.startsWith("/dashboard/items")
-                ? "btn btn-info btn-xl btn-outline btn-active"
-                : "btn btn-info btn-xl btn-outline"
+                ? "p-2 btn btn-info btn-xl btn-outline btn-active"
+                : "p-2 btn btn-info btn-xl btn-outline"
             }
             onClick={() => {
               router.push(`/dashboard/items`); // Fixed redirect

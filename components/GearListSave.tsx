@@ -2,7 +2,7 @@ import { FaTimes } from "react-icons/fa";
 import { useDataMutation } from "@/mutators";
 import { useEffect, useState, useMemo } from "react";
 import { useData } from "@/queries";
-
+import { FaEdit } from "react-icons/fa";
 import { ItemSave } from "@/components/ItemSave";
 
 export function Item({
@@ -22,18 +22,18 @@ export function Item({
         <div className="flex-1 capitalize">{item.name}</div>
         {/* edit */}
         <div
-          className="flex min-w-0 w-[100px] btn btn-info"
+          className="flex min-w-0 w-[50px] btn btn-info"
           onClick={() => {
             setInitialItem(item);
           }}
         >
-          Edit
+          <FaEdit />
         </div>
         {/* add/remove */}
         {/* add */}
         {!gearListItemIds.includes(item.id) && (
           <div
-            className="flex min-w-0 w-[100px] btn btn btn-success"
+            className="flex min-w-0 w-[75px] btn btn btn-success"
             onClick={() => {
               setSaveGearList((prev) => {
                 return {
@@ -52,7 +52,7 @@ export function Item({
         {/* remove */}
         {gearListItemIds.includes(item.id) && (
           <div
-            className="flex min-w-0 w-[100px] btn btn btn-warning"
+            className="flex min-w-0 w-[75px] btn btn btn-warning"
             onClick={() => {
               setSaveGearList((prev) => {
                 return {
@@ -110,7 +110,9 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
   });
 
   // categories
-  const categories = [...new Set(items.map((item) => item.category))];
+  const categories = [...new Set(items.map((item) => item.category))]
+    .filter(Boolean)
+    .sort();
 
   // sort items
   const itemsGrouped = useMemo(() => {
@@ -120,15 +122,16 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
         const itemsCategory = items.filter(
           (item) => item.category === category,
         );
-        itemsCategory.sort(
-          (a, b) =>
-            Number(
-              saveGearList.items.map((item) => item.itemId).includes(a.id),
-            ) -
-            Number(
-              saveGearList.items.map((item) => item.itemId).includes(b.id),
-            ),
-        );
+        itemsCategory.sort((a, b) => {
+          const includedA = Number(
+            saveGearList.items.map((item) => item.itemId).includes(a.id),
+          );
+          const includedB = Number(
+            saveGearList.items.map((item) => item.itemId).includes(b.id),
+          );
+          if (includedA != includedB) return includedA - includedB;
+          return a.name.localeCompare(b.name);
+        });
         return [category, itemsCategory];
       })
       .sort((a, b) => {
@@ -143,7 +146,6 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
             saveGearList.items.map((i) => i.itemId).includes(item.id),
           ),
         );
-        console.log(a[0], addedA, b[0], addedB);
         return addedA - addedB;
       });
   }, [items, saveGearList.items, categories]);
