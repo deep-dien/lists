@@ -112,7 +112,7 @@ function Item({
       {/* name, weight, quantity */}
       <div className="flex items-center flex-row justify-between gap-1">
         <div className="font-medium capitalize flex">{item.name}</div>
-        {item.weight !== undefined && (
+        {!!item.weight && (
           <div className="badge badge-outline">{item.weight}g</div>
         )}
         <div className="flex min-w-[225px] max-w-[225px] flex-row gap-1 p-1 items-center">
@@ -362,6 +362,25 @@ export default function GearList() {
     ...new Set(gearListItems.map((item) => item.category)),
   ].sort();
 
+  // summary counts and packed weight
+  const summary = useMemo(() => {
+    const counts: Record<GearListItemStatus, number> = {
+      unpacked: 0,
+      leave: 0,
+      packed: 0,
+    };
+    let packedWeight = 0;
+    let hasWeight = false;
+    gearListItems.forEach((item) => {
+      counts[item.status] += 1;
+      if (item.weight) hasWeight = true;
+      if (item.status === "packed") {
+        packedWeight += item.weight ?? 0;
+      }
+    });
+    return { ...counts, packedWeight, hasWeight };
+  }, [gearListItems]);
+
   // group items by status or category to display
   const itemsGrouped: ItemsGroup[] = useMemo(() => {
     if (sortMode === "status") {
@@ -519,33 +538,59 @@ export default function GearList() {
     <div className="flex h-full w-full min-h-0 flex-col">
       <div className="flex w-full flex-shrink-0 flex-col">
         <div className="flex w-full flex-row flex-wrap items-center justify-between gap-1">
-          {/* title */}
-          <div className="order-1 font-bold capitalize">{gearList.name}</div>
-          {/* sort display*/}
-          <div className="gap-1 flex-row flex order-3 md:order-2">
-            {/* category */}
-            <div
-              className={`flex btn btn-lg ${
-                sortMode === "category" ? "btn-active" : ""
-              }`}
-              onClick={() => setSortMode("category")}
-            >
-              <FaLayerGroup />
-              Category
-            </div>
-            {/* status */}
-            <div
-              className={`flex btn btn-lg ${
-                sortMode === "status" ? "btn-active" : ""
-              }`}
-              onClick={() => setSortMode("status")}
-            >
-              <FaSortAmountDown />
-              Status
+          {/* title + summary badges */}
+          <div className="order-1 flex min-w-0 flex-1 flex-row flex-wrap items-center gap-1">
+            {/* title */}
+            <div className="font-bold capitalize">{gearList.name}</div>
+
+            {/* summary badges */}
+            <div className="flex flex-row flex-wrap items-center gap-1">
+              <div
+                className={`badge badge-lg badge-error gap-1 ${
+                  summary.unpacked === 0 ? "badge-outline" : ""
+                }`}
+              >
+                <FaBoxOpen />
+                <span className="hidden md:inline">unpacked</span>
+                <span className="badge badge-sm bg-base-100 text-base-content">
+                  {summary.unpacked}
+                </span>
+              </div>
+              <div
+                className={`badge badge-lg badge-warning gap-1 ${
+                  summary.leave === 0 ? "badge-outline" : ""
+                }`}
+              >
+                <FaPlaneDeparture />
+                <span className="hidden md:inline">leave</span>
+                <span className="badge badge-sm bg-base-100 text-base-content">
+                  {summary.leave}
+                </span>
+              </div>
+              <div
+                className={`badge badge-lg badge-success gap-1 ${
+                  summary.packed === 0 ? "badge-outline" : ""
+                }`}
+              >
+                <FaSuitcase />
+                <span className="hidden md:inline">packed</span>
+                <span className="badge badge-sm bg-base-100 text-base-content">
+                  {summary.packed}
+                </span>
+              </div>
+              {summary.hasWeight && (
+                <div className="badge badge-lg badge-success badge-outline gap-1">
+                  <span className="hidden md:inline">packed weight</span>
+                  <span className="badge badge-sm bg-base-100 text-base-content">
+                    {summary.packedWeight}g
+                  </span>
+                </div>
+              )}
             </div>
           </div>
+
           {/* share, reset, edit, back */}
-          <div className="order-2 md:order-3 flex flex-row gap-1">
+          <div className="order-2 w-full flex flex-row gap-1 md:order-4 md:w-auto">
             {/* share */}
             <Copy endpoint={`/dashboard/gear-lists/${gearList.id}`} />
             {/* reset */}
@@ -565,6 +610,30 @@ export default function GearList() {
               onClick={() => redirect("/dashboard/gear-lists")}
             >
               <IoReturnDownBack />
+            </div>
+          </div>
+
+          {/* sort display*/}
+          <div className="order-3 w-full flex flex-row flex-wrap gap-1 md:order-3 md:w-auto">
+            {/* category */}
+            <div
+              className={`flex btn btn-lg ${
+                sortMode === "category" ? "btn-active" : ""
+              }`}
+              onClick={() => setSortMode("category")}
+            >
+              <FaLayerGroup />
+              Category
+            </div>
+            {/* status */}
+            <div
+              className={`flex btn btn-lg ${
+                sortMode === "status" ? "btn-active" : ""
+              }`}
+              onClick={() => setSortMode("status")}
+            >
+              <FaSortAmountDown />
+              Status
             </div>
           </div>
         </div>
