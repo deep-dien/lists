@@ -6,6 +6,7 @@ import { FaEdit } from "react-icons/fa";
 import { ItemSave } from "@/components/ItemSave";
 import { useSession } from "next-auth/react";
 import { FaShareAlt } from "react-icons/fa";
+import { FaLayerGroup, FaSortAmountDown, FaSortAmountUp } from "react-icons/fa";
 
 export function Item({
   item,
@@ -130,61 +131,91 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
     .filter(Boolean)
     .sort();
 
+  // sort mode
+  const [sortMode, setSortMode] = useState("category");
+  const [sortAddedAsc, setSortAddedAsc] = useState(true);
+
   // sort items
+  // shape: [group, [[subCategory, items], ...]]
+  // subCategory is null when there's no sub-header to render (category mode)
   const itemsGrouped = useMemo(() => {
     if (!itemsAll) return [];
+    const gearListItemIds = saveGearList.items.map((item) => item.itemId);
+
+    if (sortMode === "added") {
+      const groups = sortAddedAsc
+        ? ["added", "not added"]
+        : ["not added", "added"];
+      return groups.map((group) => {
+        const itemsGroup = itemsAll.filter((item) =>
+          group === "added"
+            ? gearListItemIds.includes(item.id)
+            : !gearListItemIds.includes(item.id),
+        );
+        const groupCategories = [
+          ...new Set(itemsGroup.map((item) => item.category)),
+        ]
+          .filter(Boolean)
+          .sort();
+        const subgroups = groupCategories.map((category) => {
+          const itemsCategory = itemsGroup.filter(
+            (item) => item.category === category,
+          );
+          itemsCategory.sort((a, b) => a.name.localeCompare(b.name));
+          return [category, itemsCategory];
+        });
+        return [group, subgroups];
+      });
+    }
+
     return categories
       .map((category) => {
         const itemsCategory = itemsAll.filter(
           (item) => item.category === category,
         );
         itemsCategory.sort((a, b) => {
-          const includedA = Number(
-            saveGearList.items.map((item) => item.itemId).includes(a.id),
-          );
-          const includedB = Number(
-            saveGearList.items.map((item) => item.itemId).includes(b.id),
-          );
+          const includedA = Number(gearListItemIds.includes(a.id));
+          const includedB = Number(gearListItemIds.includes(b.id));
           if (includedA != includedB) return includedA - includedB;
           return a.name.localeCompare(b.name);
         });
-        return [category, itemsCategory];
+        return [category, [[null, itemsCategory]]];
       })
       .sort((a, b) => {
-        const [itemsA, itemsB] = [a[1], b[1]];
+        const [itemsA, itemsB] = [a[1][0][1], b[1][0][1]];
         const addedA = Number(
-          itemsA.every((item) =>
-            saveGearList.items.map((i) => i.itemId).includes(item.id),
-          ),
+          itemsA.every((item) => gearListItemIds.includes(item.id)),
         );
         const addedB = Number(
-          itemsB.every((item) =>
-            saveGearList.items.map((i) => i.itemId).includes(item.id),
-          ),
+          itemsB.every((item) => gearListItemIds.includes(item.id)),
         );
         return addedA - addedB;
       });
-  }, [itemsAll, saveGearList.items, categories]);
-
-  console.log(itemsGrouped);
+  }, [itemsAll, saveGearList.items, categories, sortMode, sortAddedAsc]);
 
   // search
   const [search, setSearch] = useState("");
   const itemsFiltered = itemsGrouped
-    .map(([category, itemsCategory]) => {
-      const itemsFilter = itemsCategory.filter(
-        (item) =>
-          item.name.toLowerCase().includes(search.toLowerCase()) ||
-          category.includes(search),
-      );
-      return [category, itemsFilter];
+    .map(([group, subgroups]) => {
+      const subgroupsFiltered = subgroups
+        .map(([subCategory, items]) => {
+          const itemsFilter = items.filter(
+            (item) =>
+              item.name.toLowerCase().includes(search.toLowerCase()) ||
+              (subCategory ?? "").includes(search) ||
+              group.includes(search),
+          );
+          return [subCategory, itemsFilter];
+        })
+        .filter(
+          ([subCategory, items]) =>
+            !!items?.length || (subCategory ?? "").includes(search),
+        );
+      return [group, subgroupsFiltered];
     })
     .filter(
-      ([category, itemsCategory]) =>
-        !!itemsCategory?.length || category.includes(search),
+      ([group, subgroups]) => !!subgroups?.length || group.includes(search),
     );
-
-  console.log(itemsFiltered);
 
   // new item
   const [initialItem, setInitialItem] = useState(null);
@@ -210,23 +241,62 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
           Create
         </div>
       </div>
+      {/* sort row */}
+      <div className="gap-1 flex-row flex">
+        {/* category */}
+        <div
+          className={`flex btn btn-lg ${
+            sortMode === "category" ? "btn-active" : ""
+          }`}
+          onClick={() => setSortMode("category")}
+        >
+          <FaLayerGroup />
+          Category
+        </div>
+        {/* added */}
+        <div
+          className={`flex btn btn-lg ${
+            sortMode === "added" ? "btn-active" : ""
+          }`}
+          onClick={() => {
+            if (sortMode === "added") {
+              setSortAddedAsc((prev) => !prev);
+            } else {
+              setSortMode("added");
+            }
+          }}
+        >
+          {sortAddedAsc ? <FaSortAmountDown /> : <FaSortAmountUp />}
+          Added
+        </div>
+      </div>
       {/* divider */}
       <div className="divider p-0 m-0"></div>
       {/* items */}
       <div className="overflow-y-auto w-full">
-        {itemsFiltered.map(([category, itemsCategory]) => {
+        {itemsFiltered.map(([group, subgroups]) => {
           return (
-            <div key={category} className="gap-1">
+            <div key={group} className="gap-1">
               <div className="divider font-bold capitalize flex">
-                {category}
+                {group}
               </div>
-              <ItemsList
-                items={itemsCategory}
-                saveGearList={saveGearList}
-                setSaveGearList={setSaveGearList}
-                setInitialItem={setInitialItem}
-              />
-              {/* <div className="divider p-0 m-0"></div> */}
+              {subgroups.map(([subCategory, items]) => {
+                return (
+                  <div key={subCategory ?? "all"} className="gap-1">
+                    {subCategory && (
+                      <div className="divider capitalize flex">
+                        {subCategory}
+                      </div>
+                    )}
+                    <ItemsList
+                      items={items}
+                      saveGearList={saveGearList}
+                      setSaveGearList={setSaveGearList}
+                      setInitialItem={setInitialItem}
+                    />
+                  </div>
+                );
+              })}
             </div>
           );
         })}
@@ -314,9 +384,8 @@ export function GearListSave({
               className="checkbox"
               defaultChecked={initialGearList?.isDefault}
               onChange={(e) => {
-                console.log(e.target.value);
-                saveGearList((prev) => {
-                  return { ...prev, isDefault: e.target.value };
+                setSaveGearList((prev) => {
+                  return { ...prev, isDefault: e.target.checked };
                 });
               }}
             />
