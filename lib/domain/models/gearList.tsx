@@ -30,6 +30,7 @@ class GearList {
   userId?: string;
   description?: string;
   isDefault?: boolean;
+  clonedId?: string;
   constructor(init: GearListModal) {
     this.id = init.id;
     this.name = init.name;
@@ -37,6 +38,7 @@ class GearList {
     this.userId = init.userId;
     this.description = init.description;
     this.isDefault = init.isDefault;
+    this.clonedId = init.clonedId;
   }
 }
 
@@ -47,6 +49,7 @@ interface GearListModal {
   userId?: string;
   description?: string;
   isDefault?: boolean;
+  clonedId?: string;
 }
 
 export { GearList };

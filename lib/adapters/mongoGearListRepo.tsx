@@ -13,6 +13,7 @@ export interface GearListDoc {
   userId: string | undefined;
   isDefault: boolean | undefined;
   description: string | undefined;
+  clonedId: string | undefined;
 }
 
 class MongoGearListRepo implements GearListRepo {
@@ -34,6 +35,7 @@ class MongoGearListRepo implements GearListRepo {
       userId: doc.userId,
       description: doc.description,
       isDefault: doc.isDefault,
+      clonedId: doc.clonedId,
     });
   }
 
@@ -41,14 +43,7 @@ class MongoGearListRepo implements GearListRepo {
     const collection = await this.collection();
     const doc = await collection.findOne({ _id: new ObjectId(id) });
     if (!doc) return null;
-    return new GearList({
-      id: doc._id.toString(),
-      name: doc.name,
-      items: doc.items,
-      userId: doc.userId,
-      description: doc.description,
-      isDefault: doc.isDefault,
-    });
+    return this.docToGearList(doc);
   }
 
   async findForUser(userId: string): Promise<GearList[]> {
@@ -74,6 +69,7 @@ class MongoGearListRepo implements GearListRepo {
         name: gearList.name ?? "",
         isDefault: gearList.isDefault,
         description: gearList.description,
+        clonedId: gearList.clonedId,
         items: gearList.items ?? [],
       });
       if (!result.acknowledged) return null;
@@ -84,6 +80,7 @@ class MongoGearListRepo implements GearListRepo {
         userId: gearList.userId,
         isDefault: gearList.isDefault,
         description: gearList.description,
+        clonedId: gearList.clonedId,
       });
     }
     const updateDoc = {

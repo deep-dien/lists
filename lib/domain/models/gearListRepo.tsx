@@ -8,7 +8,7 @@ export interface GearListFilter {
 
 interface GearListRepo {
   findById(id: string): Promise<GearList | null>;
-  findForUser(userId: string, filter: GearListFilter): Promise<GearList[]>;
+  findForUser(userId: string, filter?: GearListFilter): Promise<GearList[]>;
   upsert(gearList: Partial<GearList>): Promise<GearList | null>;
   delete(id: string): Promise<RepoResult>;
   addItem(

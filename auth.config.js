@@ -24,11 +24,9 @@ export const authConfig = {
     },
     async jwt({ token, user }) {
       if (user) {
-        const dbUser = await userRepo.findById({
-          id: user.id,
-        });
+        const dbUser = await userRepo.findById(user.id);
         token.id = user.id;
-        token.canModifyDefaults = dbUser.canModifyDefaults;
+        token.canModifyDefaults = dbUser?.canModifyDefaults;
       }
       return token;
     },

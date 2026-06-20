@@ -15,6 +15,16 @@ export class CloneGearListService {
       throw new Error("Gear list not found");
     }
 
+    // if this gear list has already been cloned for this user, return the
+    // existing clone instead of creating a duplicate
+    const userGearLists = await this.gearListRepo.findForUser(userId);
+    const existingClone = userGearLists.find(
+      (gearList) => gearList.clonedId === sourceGearListId,
+    );
+    if (existingClone) {
+      return existingClone;
+    }
+
     // list of items from the source gear list
     const sourceItemIds = sourceGearList.items
       .map((item) => item.itemId)
@@ -32,9 +42,6 @@ export class CloneGearListService {
       const clonedItem = userItems.find(
         (i): i is Item & { id: string } => !!i.id && i.clonedId === item.id,
       );
-
-      console.log("clonedItem", clonedItem);
-      console.log("item", item);
 
       // only clone item if it hasnt been cloned
       if (!clonedItem) {
@@ -74,6 +81,7 @@ export class CloneGearListService {
       description: sourceGearList.description,
       userId,
       isDefault: false,
+      clonedId: sourceGearListId,
       items: clonedItems,
     });
     if (!createdGearList) {

@@ -14,8 +14,6 @@ export async function POST(
   const authResult = await requireUser();
   if ("response" in authResult) return authResult.response;
 
-  console.log(authResult);
-
   const { gearListId } = await params;
 
   // clone service

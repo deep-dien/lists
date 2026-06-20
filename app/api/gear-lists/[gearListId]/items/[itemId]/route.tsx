@@ -1,5 +1,5 @@
 import { MongoGearListRepo } from "@/lib/adapters/mongoGearListRepo";
-import { requireUser } from "@/lib/api/auth";
+import { canModifyGearList, requireUser } from "@/lib/api/auth";
 import { GearListItem, GearListItemStatus } from "@/lib/domain/models/gearList";
 import { NextResponse } from "next/server";
 
@@ -18,6 +18,8 @@ export async function PUT(req: Request, { params }: RouteParams) {
   if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
+  const forbidden = canModifyGearList(existing, authResult.user);
+  if (forbidden) return forbidden;
 
   const body = (await req.json()) as {
     status?: GearListItemStatus;
@@ -59,6 +61,8 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
   if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
+  const forbidden = canModifyGearList(existing, authResult.user);
+  if (forbidden) return forbidden;
   const result = await gearListRepo.deleteItem(gearListId, itemId);
   if (!result.success) {
     return NextResponse.json({ message: result.error }, { status: 500 });

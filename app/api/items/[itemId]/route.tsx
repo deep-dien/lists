@@ -1,5 +1,5 @@
 import { MongoItemRepo } from "@/lib/adapters/mongoItemRepo";
-import { requireUser } from "@/lib/api/auth";
+import { canModifyItem, requireUser } from "@/lib/api/auth";
 import { Item } from "@/lib/domain/models/item";
 import { NextResponse } from "next/server";
 
@@ -16,6 +16,8 @@ export async function PUT(req: Request, { params }: RouteParams) {
   if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
+  const forbidden = canModifyItem(existing, authResult.user);
+  if (forbidden) return forbidden;
   const body = (await req.json()) as Partial<Item>;
   const updated = await itemRepo.upsert(
     new Item({
@@ -23,7 +25,9 @@ export async function PUT(req: Request, { params }: RouteParams) {
       ...body,
       id: existing.id,
       userId: existing.userId,
-      isDefault: existing.isDefault,
+      isDefault: authResult.user.canModifyDefaults
+        ? (body.isDefault ?? existing.isDefault)
+        : existing.isDefault,
     }),
   );
   if (!updated) {
@@ -44,6 +48,8 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
   if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
+  const forbidden = canModifyItem(existing, authResult.user);
+  if (forbidden) return forbidden;
   const result = await itemRepo.delete(itemId);
   if (!result.success) {
     return NextResponse.json({ message: result.error }, { status: 500 });

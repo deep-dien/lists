@@ -55,10 +55,6 @@ class MongoItemRepo implements ItemRepo {
   async findForUser(userId: string): Promise<Item[]> {
     const collection = await this.collection();
     const docs = await collection.find({ userId: userId }).toArray();
-    console.log(
-      docs,
-      docs.map((doc) => this.docToItem(doc)),
-    );
     return docs.map((doc) => this.docToItem(doc));
   }
 
