@@ -10,7 +10,10 @@ export function ItemSave({ initialItem, setInitialItem, categories = [] }) {
   const [saveItem, setSaveItem] = useState(initialItem);
 
   // save item
-  const saveItemMutation = useDataMutation("/api/items", "PUT", ["/api/items"]);
+  const saveItemMutation = useDataMutation("/api/items", "PUT", [
+    "/api/items",
+    "api/items/defaults",
+  ]);
   const handleSave = function () {
     const item = {
       ...saveItem,
@@ -114,7 +117,6 @@ export function ItemSave({ initialItem, setInitialItem, categories = [] }) {
                 className="checkbox"
                 defaultChecked={initialItem?.isDefault}
                 onChange={(e) => {
-                  console.log(e.target.value);
                   setSaveItem((prev) => {
                     return { ...prev, isDefault: e.target.value };
                   });

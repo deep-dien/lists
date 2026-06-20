@@ -84,13 +84,6 @@ export default function Items() {
   // items default
   const { data: itemsDefaults = [] } = useData("/api/items/defaults");
 
-  console.log("itemsDefaults", itemsDefaults);
-
-  // categories
-  const categories = [...new Set(items.map((item) => item.category))]
-    .filter(Boolean)
-    .sort();
-
   // items all
   let itemsAll = [];
   if (session?.user?.canModifyDefaults) {
@@ -98,6 +91,11 @@ export default function Items() {
   } else {
     itemsAll = items;
   }
+
+  // categories
+  const categories = [...new Set(itemsAll.map((item) => item.category))]
+    .filter(Boolean)
+    .sort();
 
   // sort items
   const itemsGrouped = useMemo(() => {
@@ -112,7 +110,7 @@ export default function Items() {
       });
       return [category, itemsCategory];
     });
-  }, [items]);
+  }, [itemsAll]);
 
   // search
   const [search, setSearch] = useState("");
