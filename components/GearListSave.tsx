@@ -161,11 +161,7 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
           const itemsCategory = itemsGroup.filter(
             (item) => item.category === category,
           );
-          itemsCategory.sort((a, b) =>
-            sortAddedAsc
-              ? a.name.localeCompare(b.name)
-              : b.name.localeCompare(a.name),
-          );
+          itemsCategory.sort((a, b) => a.name.localeCompare(b.name));
           return [category, itemsCategory];
         });
         return [group, subgroups];
@@ -388,9 +384,8 @@ export function GearListSave({
               className="checkbox"
               defaultChecked={initialGearList?.isDefault}
               onChange={(e) => {
-                console.log(e.target.value);
                 setSaveGearList((prev) => {
-                  return { ...prev, isDefault: e.target.value };
+                  return { ...prev, isDefault: e.target.checked };
                 });
               }}
             />
