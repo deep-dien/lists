@@ -4,7 +4,7 @@ import { Loading } from "@/components/Loading";
 import { GearList as GearListModel } from "@/lib/domain/models/gearList";
 import { useData } from "@/queries";
 import { useDataMutation } from "@/mutators";
-import { useEffect, useState, useMemo } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
 import { redirect } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { FaEdit } from "react-icons/fa";
@@ -15,11 +15,25 @@ import { Copy } from "@/components/Copy";
 import { GearListSave } from "@/components/GearListSave";
 import { useSession } from "next-auth/react";
 
+type DraftGearListItem = {
+  itemId?: string;
+  status?: string;
+  quantity?: number;
+};
+
+type DraftGearList = Partial<Omit<GearListModel, "items" | "isDefault">> & {
+  items: DraftGearListItem[];
+  isDefault?: boolean | string;
+};
+
+type SetInitialGearList = Dispatch<SetStateAction<DraftGearList | null>>;
+
 export function GearList({
   gearList,
   setInitialGearList,
 }: {
   gearList: GearListModel;
+  setInitialGearList: SetInitialGearList;
 }) {
   const deleteMutation = useDataMutation(
     `/api/gear-lists/${gearList.id}`,
@@ -73,6 +87,7 @@ export function GearListList({
   setInitialGearList,
 }: {
   gearLists: GearListModel[];
+  setInitialGearList: SetInitialGearList;
 }) {
   if (gearLists.length === 0) {
     return (
@@ -96,7 +111,7 @@ export function GearListList({
   );
 }
 
-export function GearListDefault({ gearList }) {
+export function GearListDefault({ gearList }: { gearList: GearListModel }) {
   const cloneGearList = useDataMutation(
     `/api/gear-lists/${gearList.id}/clone`,
     "POST",
@@ -129,7 +144,7 @@ export default function GearLists() {
     useData("/api/gear-lists/defaults");
 
   // gear lists all
-  const gearListsAll = useMemo(() => {
+  const gearListsAll: GearListModel[] = useMemo(() => {
     if (gearListsLoading || gearListsDefaultsLoading) return [];
     if (session?.user?.canModifyDefaults) {
       return [...gearLists, ...gearListsDefaults];
@@ -139,8 +154,9 @@ export default function GearLists() {
   }, [gearLists, gearListsDefaults, session?.user?.canModifyDefaults]);
 
   // gearListsAll sort
-  gearListsAll.sort((a, b) => {
-    if (a.isDefault != b.isDefault) return a.isDefault - b.isDefault;
+  gearListsAll.sort((a: GearListModel, b: GearListModel) => {
+    if (a.isDefault != b.isDefault)
+      return Number(a.isDefault) - Number(b.isDefault);
     return a.name.localeCompare(b.name);
   });
 
@@ -151,7 +167,8 @@ export default function GearLists() {
   );
 
   // set initial gear list for gear list editing
-  const [initialGearList, setInitialGearList] = useState(null);
+  const [initialGearList, setInitialGearList] =
+    useState<DraftGearList | null>(null);
 
   if (gearListsLoading || gearListsDefaultsLoading) return <Loading />;
   if (status === "loading") return <Loading />;
@@ -179,7 +196,7 @@ export default function GearLists() {
           <div className="flex flex-row flex-wrap flex-shrink-0 items-center w-full  gap-1">
             <div className="flex">Seed from defaults:</div>
             <div className="flex flex-wrap gap-1">
-              {gearListsDefaults.map((gearList) => {
+              {gearListsDefaults.map((gearList: GearListModel) => {
                 return (
                   <GearListDefault key={gearList.id} gearList={gearList} />
                 );

@@ -29,7 +29,9 @@ export class CloneGearListService {
     const clonedItems: GearListItem[] = [];
     for (const item of sourceItems) {
       // if source item has already been cloned into user, return null
-      const clonedItem = userItems.find((i) => i.clonedId === item.id);
+      const clonedItem = userItems.find(
+        (i): i is Item & { id: string } => !!i.id && i.clonedId === item.id,
+      );
 
       console.log("clonedItem", clonedItem);
       console.log("item", item);

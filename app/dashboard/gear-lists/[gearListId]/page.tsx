@@ -1,8 +1,9 @@
 "use client";
 
 import { Loading } from "@/components/Loading";
-import { parseItemWeight } from "@/lib/domain/models/item";
+import { Item as ItemModel, parseItemWeight } from "@/lib/domain/models/item";
 import {
+  GearListItem,
   GearListItemStatus,
   STATUS_SORT_ORDER,
 } from "@/lib/domain/models/gearList";
@@ -13,7 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { redirect, useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { GearListSave } from "@/components/GearListSave";
+import { GearListSave, DraftGearList } from "@/components/GearListSave";
 import {
   FaArrowLeft,
   FaBoxOpen,
@@ -30,15 +31,24 @@ import { IoReturnDownBack, IoReturnDownForward } from "react-icons/io5";
 
 import { str_sanitize } from "@/utilities";
 
-function compareByName(a, b) {
+type GearListDisplayItem = {
+  itemId: string;
+  status: GearListItemStatus;
+  quantity: number;
+  name: string;
+  category?: string;
+  weight?: number;
+};
+
+function compareByName(a: GearListDisplayItem, b: GearListDisplayItem): number {
   return a.name.localeCompare(b.name);
 }
 
-function compareByWeight(a, b) {
-  return b.weight - a.weight;
+function compareByWeight(a: GearListDisplayItem, b: GearListDisplayItem): number {
+  return (b.weight ?? 0) - (a.weight ?? 0);
 }
 
-function compareByStatus(a, b) {
+function compareByStatus(a: GearListDisplayItem, b: GearListDisplayItem): number {
   if (a.status !== b.status)
     return STATUS_SORT_ORDER[a.status] - STATUS_SORT_ORDER[b.status];
   const catA = str_sanitize(a.category?.trim() || "Uncategorized");
@@ -47,7 +57,7 @@ function compareByStatus(a, b) {
   return compareByName(a, b);
 }
 
-function compareByCategory(a, b) {
+function compareByCategory(a: GearListDisplayItem, b: GearListDisplayItem): number {
   const catA = str_sanitize(a.category?.trim() || "Uncategorized");
   const catB = str_sanitize(b.category?.trim() || "Uncategorized");
   if (catA !== catB) return catA.localeCompare(catB);
@@ -66,13 +76,26 @@ function statusClass(status: GearListItemStatus) {
   }
 }
 
+type StatusChangeHandler = (
+  itemId: string,
+  currentStatus: GearListItemStatus,
+  nextStatus: GearListItemStatus,
+) => void;
+
+type QuantityChangeHandler = (
+  itemId: string,
+  currentQuantity: number,
+  nextQuantity: number,
+) => void;
+
 function Item({
   item,
   handleStatusChange,
   handleQuantityChange,
 }: {
-  item: any;
-  handleStatusChange: any;
+  item: GearListDisplayItem;
+  handleStatusChange: StatusChangeHandler;
+  handleQuantityChange: QuantityChangeHandler;
 }) {
   return (
     <div
@@ -182,10 +205,16 @@ export function GearListItemsNil() {
   );
 }
 
+type ItemsGroup = [string | undefined, GearListDisplayItem[]];
+
 export function GearListItemsSmall({
   itemsGrouped,
   handleStatusChange,
   handleQuantityChange,
+}: {
+  itemsGrouped: ItemsGroup[];
+  handleStatusChange: StatusChangeHandler;
+  handleQuantityChange: QuantityChangeHandler;
 }) {
   return (
     <div className="flex flex-col gap-3 md:hidden">
@@ -217,6 +246,10 @@ export function GearListItemsLarge({
   itemsGrouped,
   handleStatusChange,
   handleQuantityChange,
+}: {
+  itemsGrouped: ItemsGroup[];
+  handleStatusChange: StatusChangeHandler;
+  handleQuantityChange: QuantityChangeHandler;
 }) {
   return (
     <div className="hidden md:flex w-full h-full flex-row gap-1">
@@ -277,7 +310,7 @@ export default function GearList() {
       if (!session?.user?.id) return;
       if (gearList.userId && gearList.userId === session.user.id) return;
       const cloned = await cloneGearList.mutateAsync({
-        gearListId: gearListId.id,
+        gearListId,
       });
       router.replace(`/dashboard/gear-lists/${cloned.id}`);
     })();
@@ -299,11 +332,13 @@ export default function GearList() {
     }
   }, [items, itemsDefaults, session?.user?.canModifyDefaults]);
 
-  const gearListItems = useMemo(() => {
+  const gearListItems: GearListDisplayItem[] = useMemo(() => {
     if (!gearList?.items || !items || !itemsDefaults) return [];
     return gearList.items
-      .map((gearListItem) => {
-        const item = itemsAll.find((item) => item.id === gearListItem.itemId);
+      .map((gearListItem: GearListItem): GearListDisplayItem | null => {
+        const item = itemsAll.find(
+          (item: ItemModel) => item.id === gearListItem.itemId,
+        );
         if (!item) return null;
         return {
           // info from gearListItem
@@ -316,19 +351,22 @@ export default function GearList() {
           weight: parseItemWeight(item.weight),
         };
       })
-      .filter(Boolean);
+      .filter(
+        (item: GearListDisplayItem | null): item is GearListDisplayItem =>
+          item !== null,
+      );
   }, [gearList, items]);
 
   // get categories
-  const categories = [
+  const categories: (string | undefined)[] = [
     ...new Set(gearListItems.map((item) => item.category)),
   ].sort();
 
   // group items by status or category to display
-  const itemsGrouped = useMemo(() => {
+  const itemsGrouped: ItemsGroup[] = useMemo(() => {
     if (sortMode === "status") {
-      const statuses = ["unpacked", "leave", "packed"];
-      return statuses.map((status) => {
+      const statuses: GearListItemStatus[] = ["unpacked", "leave", "packed"];
+      return statuses.map((status): ItemsGroup => {
         const itemsStatus = gearListItems.filter(
           (item) => item.status === status,
         );
@@ -338,7 +376,7 @@ export default function GearList() {
     }
     if (sortMode === "category") {
       return categories
-        .map((category) => {
+        .map((category): ItemsGroup => {
           const itemsCategory = gearListItems.filter(
             (item) => item.category === category,
           );
@@ -360,6 +398,7 @@ export default function GearList() {
           return 0;
         });
     }
+    return [];
   }, [gearListItems, items, sortMode]);
 
   // functions to update status when changed by user
@@ -372,7 +411,13 @@ export default function GearList() {
     updateStatus.mutate({ itemId, status });
   };
   const updateStatus = useMutation({
-    mutationFn: async ({ itemId, status }) => {
+    mutationFn: async ({
+      itemId,
+      status,
+    }: {
+      itemId: string;
+      status: GearListItemStatus;
+    }) => {
       const res = await fetch(`/api/gear-lists/${gearListId}/items/${itemId}`, {
         method: "PUT",
         headers: {
@@ -388,11 +433,11 @@ export default function GearList() {
     onMutate: async ({ itemId, status }) => {
       queryClient.setQueryData(
         [`/api/gear-lists/${gearListId}`, undefined],
-        (old: any) => {
+        (old: DraftGearList | undefined) => {
           if (!old) return old;
           return {
             ...old,
-            items: old.items.map((item: any) =>
+            items: old.items.map((item) =>
               item.itemId === itemId ? { ...item, status } : item,
             ),
           };
@@ -407,14 +452,20 @@ export default function GearList() {
   // functions to update quantity when changed by user
   const handleQuantityChange = (
     itemId: string,
-    currentQuantity: GearListItemStatus,
-    nextQuantity: GearListItemStatus,
+    currentQuantity: number,
+    nextQuantity: number,
   ) => {
     nextQuantity = Math.max(nextQuantity, 0);
     updateQuantity.mutate({ itemId, quantity: nextQuantity });
   };
   const updateQuantity = useMutation({
-    mutationFn: async ({ itemId, quantity }) => {
+    mutationFn: async ({
+      itemId,
+      quantity,
+    }: {
+      itemId: string;
+      quantity: number;
+    }) => {
       const res = await fetch(`/api/gear-lists/${gearListId}/items/${itemId}`, {
         method: "PUT",
         headers: {
@@ -430,11 +481,11 @@ export default function GearList() {
     onMutate: async ({ itemId, quantity }) => {
       queryClient.setQueryData(
         [`/api/gear-lists/${gearListId}`, undefined],
-        (old: any) => {
+        (old: DraftGearList | undefined) => {
           if (!old) return old;
           return {
             ...old,
-            items: old.items.map((item: any) =>
+            items: old.items.map((item) =>
               item.itemId === itemId ? { ...item, quantity } : item,
             ),
           };
@@ -448,14 +499,15 @@ export default function GearList() {
 
   // reset status
   const resetStatus = function () {
-    gearList.items.map((item) => {
+    gearList.items.map((item: GearListItem) => {
       updateStatus.mutate({ itemId: item.itemId, status: "unpacked" });
       updateQuantity.mutate({ itemId: item.itemId, quantity: 1 });
     });
   };
 
   // initial gear list state for making edits
-  const [initialGearList, setInitialGearList] = useState(null);
+  const [initialGearList, setInitialGearList] =
+    useState<DraftGearList | null>(null);
 
   if (gearListLoading || itemsLoading) return <Loading />;
   if (!gearList) return <Loading />;

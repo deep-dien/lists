@@ -1,10 +1,10 @@
 import { FaShareAlt } from "react-icons/fa";
 
-import { Tooltip } from "react-tooltip";
+import { Tooltip, TooltipRefProps } from "react-tooltip";
 import { useRef } from "react";
 
-export function Copy({ endpoint }) {
-  const tooltipRefCopy = useRef(null);
+export function Copy({ endpoint }: { endpoint: string }) {
+  const tooltipRefCopy = useRef<TooltipRefProps>(null);
   return (
     <div>
       <div
@@ -20,13 +20,13 @@ export function Copy({ endpoint }) {
         onClick={() => {
           const url = `${window.location.origin}/${endpoint}`;
           navigator.clipboard.writeText(url);
-          tooltipRefCopy.current.open({
+          tooltipRefCopy.current?.open({
             anchorSelect: "#copyUrl",
             place: "left",
             content: "Trip link copied.",
           });
           setTimeout(() => {
-            tooltipRefCopy.current.close();
+            tooltipRefCopy.current?.close();
           }, 750);
         }}
       >

@@ -26,11 +26,14 @@ class MongoGearListRepo implements GearListRepo {
     return db.collection(COLLECTION_NAME);
   }
 
-  private docToGearList(doc: Partial<GearListDoc>): GearList {
-    if (!doc) return null;
+  private docToGearList(doc: GearListDoc): GearList {
     return new GearList({
-      ...doc,
       id: doc._id.toString(),
+      name: doc.name,
+      items: doc.items,
+      userId: doc.userId,
+      description: doc.description,
+      isDefault: doc.isDefault,
     });
   }
 
@@ -78,7 +81,9 @@ class MongoGearListRepo implements GearListRepo {
         _id: result.insertedId,
         name: gearList.name ?? "",
         items: gearList.items ?? [],
-        ...gearList,
+        userId: gearList.userId,
+        isDefault: gearList.isDefault,
+        description: gearList.description,
       });
     }
     const updateDoc = {
@@ -131,7 +136,10 @@ class MongoGearListRepo implements GearListRepo {
     return this.findById(gearListId);
   }
 
-  async updateItem(gearListId: string, item: GearListItem): Promise<boolean> {
+  async updateItem(
+    gearListId: string,
+    item: GearListItem,
+  ): Promise<GearList | null> {
     const collection = await this.collection();
     const setPayload: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(item)) {
@@ -151,7 +159,8 @@ class MongoGearListRepo implements GearListRepo {
         arrayFilters: [{ "elem.itemId": item.itemId }],
       },
     );
-    return updateResult.modifiedCount > 0;
+    if (!updateResult.modifiedCount) return null;
+    return this.findById(gearListId);
   }
 
   async deleteItem(gearListId: string, itemId: string): Promise<RepoResult> {

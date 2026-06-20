@@ -1,4 +1,4 @@
-import { ItemRepo, ItemFilter } from "@/lib/domain/models/itemRepo";
+import { ItemRepo } from "@/lib/domain/models/itemRepo";
 import { RepoResult } from "@/lib/domain/models/repoResult";
 import { Item, parseItemWeight } from "@/lib/domain/models/item";
 import { Db, Collection, ObjectId } from "mongodb";

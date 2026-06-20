@@ -19,7 +19,10 @@ export async function PUT(req: Request, { params }: RouteParams) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  const body = (await req.json()) as { status?: GearListItemStatus };
+  const body = (await req.json()) as {
+    status?: GearListItemStatus;
+    quantity?: number;
+  };
   const currentItem = existing.items.find((item) => item.itemId === itemId);
   if (!currentItem) {
     return NextResponse.json({ message: "Item not found" }, { status: 404 });

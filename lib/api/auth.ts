@@ -5,6 +5,10 @@ import { NextResponse } from "next/server";
 
 type SessionUser = {
   id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  canModifyDefaults?: boolean;
 };
 
 export async function requireUser(): Promise<
@@ -16,7 +20,7 @@ export async function requireUser(): Promise<
       response: NextResponse.json({ message: "Unauthorized" }, { status: 401 }),
     };
   }
-  return { ...session.user };
+  return { user: session.user };
 }
 
 // export function canModifyGearList(

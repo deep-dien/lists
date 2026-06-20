@@ -25,6 +25,6 @@ export async function POST(
   );
 
   // clone and return
-  const gearList = await service.execute(gearListId, authResult.id);
+  const gearList = await service.execute(gearListId, authResult.user.id);
   return NextResponse.json(gearList);
 }
