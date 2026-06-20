@@ -1,10 +1,10 @@
 "use client";
 
 import { Loading } from "@/components/Loading";
-import { GearList as GearListModel } from "@/lib/domain/models/gearList";
+import { Item as ItemModel } from "@/lib/domain/models/item";
 import { useData } from "@/queries";
 import { useDataMutation } from "@/mutators";
-import { useState, useMemo } from "react";
+import { Dispatch, SetStateAction, useState, useMemo } from "react";
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
 
@@ -13,7 +13,20 @@ import { redirect } from "next/navigation";
 import { ItemSave } from "@/components/ItemSave";
 import { useSession } from "next-auth/react";
 
-export function Item({ item, setInitialItem }: { item: GearListModel }) {
+type DraftItem = Partial<Omit<ItemModel, "weight" | "isDefault">> & {
+  weight?: number | string;
+  isDefault?: boolean | string;
+};
+
+type SetInitialItem = Dispatch<SetStateAction<DraftItem | null>>;
+
+export function Item({
+  item,
+  setInitialItem,
+}: {
+  item: ItemModel;
+  setInitialItem: SetInitialItem;
+}) {
   const deleteMutation = useDataMutation(`/api/items/${item.id}`, "DELETE", [
     "/api/items",
   ]);
@@ -49,7 +62,8 @@ export function ItemsList({
   items,
   setInitialItem,
 }: {
-  items: GearListModel[];
+  items: ItemModel[];
+  setInitialItem: SetInitialItem;
 }) {
   if (items.length === 0) {
     return (
@@ -85,7 +99,7 @@ export default function Items() {
   const { data: itemsDefaults = [] } = useData("/api/items/defaults");
 
   // items all
-  let itemsAll = [];
+  let itemsAll: ItemModel[] = [];
   if (session?.user?.canModifyDefaults) {
     itemsAll = [...items, ...itemsDefaults];
   } else {
@@ -93,20 +107,25 @@ export default function Items() {
   }
 
   // categories
-  const categories = [...new Set(itemsAll.map((item) => item.category))]
-    .filter(Boolean)
+  const categories: string[] = [
+    ...new Set(itemsAll.map((item: ItemModel) => item.category)),
+  ]
+    .filter((category): category is string => Boolean(category))
     .sort();
 
+  type ItemsCategoryGroup = [string, ItemModel[]];
+
   // sort items
-  const itemsGrouped = useMemo(() => {
+  const itemsGrouped: ItemsCategoryGroup[] = useMemo(() => {
     if (!itemsAll) return [];
-    return categories.map((category) => {
+    return categories.map((category): ItemsCategoryGroup => {
       const itemsCategory = itemsAll.filter(
         (item) => item.category === category,
       );
       itemsCategory.sort((a, b) => {
-        if (a?.isDefault != b?.isDefault) return b.isDefault - a.isDefault;
-        return a.name.localeCompare(b.name);
+        if (a?.isDefault != b?.isDefault)
+          return Number(b.isDefault) - Number(a.isDefault);
+        return (a.name ?? "").localeCompare(b.name ?? "");
       });
       return [category, itemsCategory];
     });
@@ -114,11 +133,11 @@ export default function Items() {
 
   // search
   const [search, setSearch] = useState("");
-  const itemsFiltered = itemsGrouped
-    .map(([category, itemsCategory]) => {
+  const itemsFiltered: ItemsCategoryGroup[] = itemsGrouped
+    .map(([category, itemsCategory]): ItemsCategoryGroup => {
       const itemsFilter = itemsCategory.filter(
         (item) =>
-          item.name.toLowerCase().includes(search.toLowerCase()) ||
+          (item.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
           category.includes(search) ||
           (search.includes("default") && item?.isDefault),
       );
@@ -130,7 +149,7 @@ export default function Items() {
     );
 
   // initial item for item save
-  const [initialItem, setInitialItem] = useState(null);
+  const [initialItem, setInitialItem] = useState<DraftItem | null>(null);
 
   if (isLoading) return <Loading />;
 
@@ -166,7 +185,6 @@ export default function Items() {
               </div>
               <ItemsList
                 items={itemsCategory}
-                initialItem={initialItem}
                 setInitialItem={setInitialItem}
               />
             </div>

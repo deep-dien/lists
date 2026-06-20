@@ -1,12 +1,35 @@
 import { FaTimes } from "react-icons/fa";
 import { useDataMutation } from "@/mutators";
-import { useEffect, useState, useMemo } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
 import { useData } from "@/queries";
 import { FaEdit } from "react-icons/fa";
 import { ItemSave } from "@/components/ItemSave";
 import { useSession } from "next-auth/react";
 import { FaShareAlt } from "react-icons/fa";
 import { FaLayerGroup, FaSortAmountDown, FaSortAmountUp } from "react-icons/fa";
+import { Item as ItemModel } from "@/lib/domain/models/item";
+import { GearList as GearListModel } from "@/lib/domain/models/gearList";
+
+type DraftItem = Partial<Omit<ItemModel, "weight" | "isDefault">> & {
+  weight?: number | string;
+  isDefault?: boolean | string;
+};
+
+type DraftGearListItem = {
+  itemId?: string;
+  status?: string;
+  quantity?: number;
+};
+
+export type DraftGearList = Partial<
+  Omit<GearListModel, "items" | "isDefault">
+> & {
+  items: DraftGearListItem[];
+  isDefault?: boolean | string;
+};
+
+type SetSaveGearList = Dispatch<SetStateAction<DraftGearList>>;
+type SetInitialItem = Dispatch<SetStateAction<DraftItem | null>>;
 
 export function Item({
   item,
@@ -14,7 +37,10 @@ export function Item({
   setSaveGearList,
   setInitialItem,
 }: {
-  item: GearListModel;
+  item: ItemModel;
+  saveGearList: DraftGearList;
+  setSaveGearList: SetSaveGearList;
+  setInitialItem: SetInitialItem;
 }) {
   const gearListItems = saveGearList.items;
   const gearListItemIds = saveGearList.items.map((item) => item.itemId);
@@ -82,7 +108,10 @@ export function ItemsList({
   setSaveGearList,
   setInitialItem,
 }: {
-  items: [];
+  items: ItemModel[];
+  saveGearList: DraftGearList;
+  setSaveGearList: SetSaveGearList;
+  setInitialItem: SetInitialItem;
 }) {
   if (items.length === 0) {
     return (
@@ -106,7 +135,16 @@ export function ItemsList({
   );
 }
 
-export function GearListItems({ saveGearList, setSaveGearList }) {
+type ItemsSubgroup = [string | null, ItemModel[]];
+type ItemsGroup = [string, ItemsSubgroup[]];
+
+export function GearListItems({
+  saveGearList,
+  setSaveGearList,
+}: {
+  saveGearList: DraftGearList;
+  setSaveGearList: SetSaveGearList;
+}) {
   // session
   const { data: session } = useSession();
 
@@ -119,7 +157,7 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
   );
 
   // items all
-  let itemsAll = [];
+  let itemsAll: ItemModel[] = [];
   if (session?.user?.canModifyDefaults) {
     itemsAll = [...items, ...itemsDefaults];
   } else {
@@ -127,8 +165,10 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
   }
 
   // categories
-  const categories = [...new Set(itemsAll.map((item) => item.category))]
-    .filter(Boolean)
+  const categories: string[] = [
+    ...new Set(itemsAll.map((item) => item.category)),
+  ]
+    .filter((category): category is string => Boolean(category))
     .sort();
 
   // sort mode
@@ -138,7 +178,7 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
   // sort items
   // shape: [group, [[subCategory, items], ...]]
   // subCategory is null when there's no sub-header to render (category mode)
-  const itemsGrouped = useMemo(() => {
+  const itemsGrouped: ItemsGroup[] = useMemo(() => {
     if (!itemsAll) return [];
     const gearListItemIds = saveGearList.items.map((item) => item.itemId);
 
@@ -146,22 +186,24 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
       const groups = sortAddedAsc
         ? ["added", "not added"]
         : ["not added", "added"];
-      return groups.map((group) => {
+      return groups.map((group): ItemsGroup => {
         const itemsGroup = itemsAll.filter((item) =>
           group === "added"
             ? gearListItemIds.includes(item.id)
             : !gearListItemIds.includes(item.id),
         );
-        const groupCategories = [
+        const groupCategories: string[] = [
           ...new Set(itemsGroup.map((item) => item.category)),
         ]
-          .filter(Boolean)
+          .filter((category): category is string => Boolean(category))
           .sort();
-        const subgroups = groupCategories.map((category) => {
+        const subgroups: ItemsSubgroup[] = groupCategories.map((category) => {
           const itemsCategory = itemsGroup.filter(
             (item) => item.category === category,
           );
-          itemsCategory.sort((a, b) => a.name.localeCompare(b.name));
+          itemsCategory.sort((a, b) =>
+            (a.name ?? "").localeCompare(b.name ?? ""),
+          );
           return [category, itemsCategory];
         });
         return [group, subgroups];
@@ -169,7 +211,7 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
     }
 
     return categories
-      .map((category) => {
+      .map((category): ItemsGroup => {
         const itemsCategory = itemsAll.filter(
           (item) => item.category === category,
         );
@@ -177,7 +219,7 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
           const includedA = Number(gearListItemIds.includes(a.id));
           const includedB = Number(gearListItemIds.includes(b.id));
           if (includedA != includedB) return includedA - includedB;
-          return a.name.localeCompare(b.name);
+          return (a.name ?? "").localeCompare(b.name ?? "");
         });
         return [category, [[null, itemsCategory]]];
       })
@@ -195,13 +237,13 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
 
   // search
   const [search, setSearch] = useState("");
-  const itemsFiltered = itemsGrouped
-    .map(([group, subgroups]) => {
-      const subgroupsFiltered = subgroups
-        .map(([subCategory, items]) => {
+  const itemsFiltered: ItemsGroup[] = itemsGrouped
+    .map(([group, subgroups]): ItemsGroup => {
+      const subgroupsFiltered: ItemsSubgroup[] = subgroups
+        .map(([subCategory, items]): ItemsSubgroup => {
           const itemsFilter = items.filter(
             (item) =>
-              item.name.toLowerCase().includes(search.toLowerCase()) ||
+              (item.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
               (subCategory ?? "").includes(search) ||
               group.includes(search),
           );
@@ -218,7 +260,7 @@ export function GearListItems({ saveGearList, setSaveGearList }) {
     );
 
   // new item
-  const [initialItem, setInitialItem] = useState(null);
+  const [initialItem, setInitialItem] = useState<DraftItem | null>(null);
 
   return (
     <div className="flex h-full w-full min-h-0 flex-col gap-1">
@@ -317,12 +359,17 @@ export function GearListSave({
   initialGearList,
   setInitialGearList,
   categories = [],
+}: {
+  initialGearList: DraftGearList;
+  setInitialGearList: Dispatch<SetStateAction<DraftGearList | null>>;
+  categories?: string[];
 }) {
   // session
   const { data: session } = useSession();
 
   //   gear list
-  const [saveGearList, setSaveGearList] = useState(initialGearList);
+  const [saveGearList, setSaveGearList] =
+    useState<DraftGearList>(initialGearList);
 
   // save gear list
   const saveGearListMutation = useDataMutation("/api/gear-lists", "PUT", [
@@ -334,7 +381,7 @@ export function GearListSave({
   const handleSave = function () {
     const gearList = {
       ...saveGearList,
-      name: saveGearList.name.toLowerCase().trim(),
+      name: (saveGearList.name ?? "").toLowerCase().trim(),
     };
     saveGearListMutation.mutateAsync(gearList);
     setInitialGearList(null);
@@ -382,7 +429,7 @@ export function GearListSave({
             <input
               type="checkbox"
               className="checkbox"
-              defaultChecked={initialGearList?.isDefault}
+              defaultChecked={Boolean(initialGearList?.isDefault)}
               onChange={(e) => {
                 setSaveGearList((prev) => {
                   return { ...prev, isDefault: e.target.checked };

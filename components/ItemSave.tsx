@@ -1,13 +1,27 @@
 import { FaTimes } from "react-icons/fa";
 import { useDataMutation } from "@/mutators";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { useSession } from "next-auth/react";
+import { Item } from "@/lib/domain/models/item";
 
-export function ItemSave({ initialItem, setInitialItem, categories = [] }) {
+type DraftItem = Partial<Omit<Item, "weight" | "isDefault">> & {
+  weight?: number | string;
+  isDefault?: boolean | string;
+};
+
+export function ItemSave({
+  initialItem,
+  setInitialItem,
+  categories = [],
+}: {
+  initialItem: DraftItem;
+  setInitialItem: Dispatch<SetStateAction<DraftItem | null>>;
+  categories?: string[];
+}) {
   const { data: session } = useSession();
 
   //   item
-  const [saveItem, setSaveItem] = useState(initialItem);
+  const [saveItem, setSaveItem] = useState<DraftItem>(initialItem);
 
   // save item
   const saveItemMutation = useDataMutation("/api/items", "PUT", [
@@ -17,8 +31,8 @@ export function ItemSave({ initialItem, setInitialItem, categories = [] }) {
   const handleSave = function () {
     const item = {
       ...saveItem,
-      name: saveItem.name.toLowerCase().trim(),
-      category: saveItem.category.toLowerCase().trim(),
+      name: (saveItem.name ?? "").toLowerCase().trim(),
+      category: (saveItem.category ?? "").toLowerCase().trim(),
     };
     saveItemMutation.mutateAsync(item);
     setInitialItem(null);
@@ -115,7 +129,7 @@ export function ItemSave({ initialItem, setInitialItem, categories = [] }) {
               <input
                 type="checkbox"
                 className="checkbox"
-                defaultChecked={initialItem?.isDefault}
+                defaultChecked={Boolean(initialItem?.isDefault)}
                 onChange={(e) => {
                   setSaveItem((prev) => {
                     return { ...prev, isDefault: e.target.checked };
