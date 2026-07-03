@@ -199,8 +199,8 @@ function Item({
             const nextQuantity = Math.max(0, item.quantity - 1);
             handleItemChange({
               itemId: item.itemId,
-              quantity: nextQuantity === 0 ? "packed" : "unpacked",
-              status: nextQuantity,
+              status: nextQuantity === 0 ? "packed" : "unpacked",
+              quantity: nextQuantity,
             });
           }}
         >
@@ -235,7 +235,7 @@ export function GearListItemsSmall({
       {itemsGrouped.map(([group, itemsGroup]) => {
         return (
           <div key={group}>
-            <div className="font-bold divider">{group}</div>
+            <div className="font-bold divider capitalize">{group}</div>
             <div className="flex flex-col gap-1">
               {itemsGroup.map((item) => {
                 return (
@@ -271,7 +271,7 @@ export function GearListItemsLarge({
             key={group}
             className="flex flex-shrink-0 min-h-0 h-full w-fit flex-col gap-2"
           >
-            <div className="font-bold">{group}</div>
+            <div className="font-bold capitalize">{group}</div>
             <div className="flex flex-col gap-2">
               {itemsGrouped.map((item) => (
                 <Item
@@ -485,7 +485,7 @@ export default function GearList() {
             }`}
           >
             <FaBoxOpen />
-            <span className="hidden md:inline">unpacked</span>
+            <span className="hidden md:inline">Unpacked</span>
             <span className="badge badge-sm bg-base-100 text-base-content">
               {summary.unpacked}
             </span>
@@ -496,7 +496,7 @@ export default function GearList() {
             }`}
           >
             <FaPlaneDeparture />
-            <span className="hidden md:inline">leave</span>
+            <span className="hidden md:inline">Leave</span>
             <span className="badge badge-sm bg-base-100 text-base-content">
               {summary.leave}
             </span>
@@ -507,7 +507,7 @@ export default function GearList() {
             }`}
           >
             <FaSuitcase />
-            <span className="hidden md:inline">packed</span>
+            <span className="hidden md:inline">Packed</span>
             <span className="badge badge-sm bg-base-100 text-base-content">
               {summary.packed}
             </span>
