@@ -169,12 +169,13 @@ function Item({
           className={`btn btn-xl flex-1 btn-warning ${
             item.status === "leave" ? "" : "btn-outline"
           }`}
-          onClick={() =>
+          onClick={() => {
+            const newStatus = item.status === "leave" ? "unpacked" : "leave";
             handleItemChange({
               itemId: item.itemId,
-              status: "leave",
-            })
-          }
+              status: newStatus,
+            });
+          }}
         >
           <FaPlaneDeparture />
           Leave
