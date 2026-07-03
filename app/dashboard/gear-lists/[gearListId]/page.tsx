@@ -154,7 +154,7 @@ function Item({
               handleItemChange({
                 itemId: item.itemId,
                 quantity: item.quantity + 1,
-                status: "packed",
+                status: "unpacked",
               });
             }}
           >
