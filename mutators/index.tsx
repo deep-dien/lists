@@ -82,10 +82,10 @@ export function useMutationGearListClone() {
       return clonedGearList;
     },
     onSuccess: async () => {
-      // await Promise.all([
-      //   queryClient.invalidateQueries({ queryKey: ["api", "gear-lists"] }),
-      //   queryClient.invalidateQueries({ queryKey: ["api", "items"] }),
-      // ]);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["api", "gear-lists"] }),
+        queryClient.invalidateQueries({ queryKey: ["api", "items"] }),
+      ]);
     },
   });
 }
