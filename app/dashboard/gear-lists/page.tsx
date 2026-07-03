@@ -3,13 +3,17 @@
 import { Loading } from "@/components/Loading";
 import { GearList as GearListModel } from "@/lib/domain/models/gearList";
 import { useData } from "@/queries";
-import { useDataMutation } from "@/mutators";
+import {
+  useMutationGearListClone,
+  useMutationGearListDelete,
+} from "@/mutators";
 import { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
 import { redirect } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import { IoReturnDownBack, IoReturnDownForward } from "react-icons/io5";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Copy } from "@/components/Copy";
 import { GearListSave } from "@/components/GearListSave";
@@ -35,18 +39,15 @@ export function GearList({
   gearList: GearListModel;
   setInitialGearList: SetInitialGearList;
 }) {
-  const deleteMutation = useDataMutation(
-    `/api/gear-lists/${gearList.id}`,
-    "DELETE",
-    ["/api/gear-lists"],
-  );
+  const queryClient = useQueryClient();
+  const mutationGearListDelete = useMutationGearListDelete();
 
   return (
     <div className="justify-between flex flex-col w-full items-center">
       <div className="justify-between flex flex-row w-full items-center gap-1">
         {/* title */}
-        <div className="flex-1 capitalize">{gearList.name}</div>
-        {gearList?.isDefault ? <div className="badge">Default</div> : null}
+        <div className="flex-1">{gearList.name}</div>
+        {gearList?.isDefault ? <div className="badge">D</div> : null}
         {/* copy */}
         <Copy endpoint={`/dashboard/gear-lists/${gearList.id}`} />
         {/* edit */}
@@ -62,7 +63,7 @@ export function GearList({
         <div
           className="flex min-w-0 btn btn-error btn-lg"
           onClick={() => {
-            deleteMutation.mutateAsync(undefined);
+            mutationGearListDelete.mutateAsync({ gearListId: gearList.id });
           }}
         >
           <MdDelete />
@@ -112,18 +113,15 @@ export function GearListList({
 }
 
 export function GearListDefault({ gearList }: { gearList: GearListModel }) {
-  const cloneGearList = useDataMutation(
-    `/api/gear-lists/${gearList.id}/clone`,
-    "POST",
-    ["/api/gear-lists", "/api/items"],
-  );
+  // clone gearlist
+  const mutationGearListClone = useMutationGearListClone();
 
   return (
     <div
       key={gearList.id}
-      className="flex btn btn-outline capitalize"
+      className="flex btn btn-outline"
       onClick={() => {
-        cloneGearList.mutateAsync(undefined);
+        mutationGearListClone.mutateAsync({ gearList });
       }}
     >
       {gearList.name}
@@ -151,7 +149,13 @@ export default function GearLists() {
     } else {
       return gearLists;
     }
-  }, [gearLists, gearListsDefaults, session?.user?.canModifyDefaults]);
+  }, [
+    gearLists,
+    gearListsDefaults,
+    session?.user?.canModifyDefaults,
+    gearListsLoading,
+    gearListsDefaultsLoading,
+  ]);
 
   // gearListsAll sort
   gearListsAll.sort((a: GearListModel, b: GearListModel) => {
@@ -167,8 +171,9 @@ export default function GearLists() {
   );
 
   // set initial gear list for gear list editing
-  const [initialGearList, setInitialGearList] =
-    useState<DraftGearList | null>(null);
+  const [initialGearList, setInitialGearList] = useState<DraftGearList | null>(
+    null,
+  );
 
   if (gearListsLoading || gearListsDefaultsLoading) return <Loading />;
   if (status === "loading") return <Loading />;
@@ -179,7 +184,7 @@ export default function GearLists() {
       <div className="flex flex-shrink-0 flex-col items-center justify-between gap-1">
         <div className="flex flex-shrink-0 flex-row w-full items-center justify-between gap-1">
           {/* title  */}
-          <div className="flex font-bold capitalize"> Gear lists</div>
+          <div className="flex font-bold"> Gear lists</div>
           {/* search  */}
           <div className="flex flex-1">
             <input

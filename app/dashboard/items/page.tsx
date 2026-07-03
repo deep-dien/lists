@@ -3,7 +3,6 @@
 import { Loading } from "@/components/Loading";
 import { Item as ItemModel } from "@/lib/domain/models/item";
 import { useData } from "@/queries";
-import { useDataMutation } from "@/mutators";
 import { Dispatch, SetStateAction, useState, useMemo } from "react";
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
@@ -12,6 +11,7 @@ import { redirect } from "next/navigation";
 
 import { ItemSave } from "@/components/ItemSave";
 import { useSession } from "next-auth/react";
+import { useMutationItemDelete } from "@/mutators";
 
 type DraftItem = Partial<Omit<ItemModel, "weight" | "isDefault">> & {
   weight?: number | string;
@@ -27,14 +27,13 @@ export function Item({
   item: ItemModel;
   setInitialItem: SetInitialItem;
 }) {
-  const deleteMutation = useDataMutation(`/api/items/${item.id}`, "DELETE", [
-    "/api/items",
-  ]);
+  // mutation
+  const mutateItemDelete = useMutationItemDelete();
 
   return (
     <div className="justify-between flex flex-col w-full p-1 items-center">
       <div className="justify-between flex flex-row w-full gap-1 items-center">
-        <div className="flex-1 capitalize">{item.name}</div>
+        <div className="flex-1">{item.name}</div>
         {item?.isDefault ? <div className="badge">Default</div> : null}
         <div
           className="flex min-w-0 btn btn-info"
@@ -47,7 +46,7 @@ export function Item({
         <div
           className="flex min-w-0 btn btn-error"
           onClick={() => {
-            deleteMutation.mutateAsync(undefined);
+            mutateItemDelete.mutateAsync({ itemId: item.id });
           }}
         >
           <MdDelete />
@@ -129,7 +128,7 @@ export default function Items() {
       });
       return [category, itemsCategory];
     });
-  }, [itemsAll]);
+  }, [itemsAll, categories]);
 
   // search
   const [search, setSearch] = useState("");
@@ -180,9 +179,7 @@ export default function Items() {
         {itemsFiltered.map(([category, itemsCategory]) => {
           return (
             <div key={category} className="gap-1">
-              <div className="font-bold capitalize flex divider">
-                {category}
-              </div>
+              <div className="font-bold flex divider">{category}</div>
               <ItemsList
                 items={itemsCategory}
                 setInitialItem={setInitialItem}

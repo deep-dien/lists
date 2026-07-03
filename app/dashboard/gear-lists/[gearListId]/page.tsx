@@ -8,9 +8,13 @@ import {
   STATUS_SORT_ORDER,
 } from "@/lib/domain/models/gearList";
 import { Copy } from "@/components/Copy";
-import { useDataMutation } from "@/mutators";
 import { useData } from "@/queries";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutationGearListClone,
+  useMutationGearListItemSave,
+  useMutationGearListSave,
+} from "@/mutators";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { redirect, useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -22,6 +26,7 @@ import {
   FaPlaneDeparture,
   FaSuitcase,
   FaSortAmountDown,
+  FaSortAmountUp,
   FaPlus,
   FaMinus,
   FaEdit,
@@ -44,11 +49,17 @@ function compareByName(a: GearListDisplayItem, b: GearListDisplayItem): number {
   return a.name.localeCompare(b.name);
 }
 
-function compareByWeight(a: GearListDisplayItem, b: GearListDisplayItem): number {
+function compareByWeight(
+  a: GearListDisplayItem,
+  b: GearListDisplayItem,
+): number {
   return (b.weight ?? 0) - (a.weight ?? 0);
 }
 
-function compareByStatus(a: GearListDisplayItem, b: GearListDisplayItem): number {
+function compareByStatus(
+  a: GearListDisplayItem,
+  b: GearListDisplayItem,
+): number {
   if (a.status !== b.status)
     return STATUS_SORT_ORDER[a.status] - STATUS_SORT_ORDER[b.status];
   const catA = str_sanitize(a.category?.trim() || "Uncategorized");
@@ -57,7 +68,10 @@ function compareByStatus(a: GearListDisplayItem, b: GearListDisplayItem): number
   return compareByName(a, b);
 }
 
-function compareByCategory(a: GearListDisplayItem, b: GearListDisplayItem): number {
+function compareByCategory(
+  a: GearListDisplayItem,
+  b: GearListDisplayItem,
+): number {
   const catA = str_sanitize(a.category?.trim() || "Uncategorized");
   const catB = str_sanitize(b.category?.trim() || "Uncategorized");
   if (catA !== catB) return catA.localeCompare(catB);
@@ -90,12 +104,10 @@ type QuantityChangeHandler = (
 
 function Item({
   item,
-  handleStatusChange,
-  handleQuantityChange,
+  handleItemChange,
 }: {
   item: GearListDisplayItem;
-  handleStatusChange: StatusChangeHandler;
-  handleQuantityChange: QuantityChangeHandler;
+  handleItemChange: any;
 }) {
   return (
     <div
@@ -111,42 +123,39 @@ function Item({
     >
       {/* name, weight, quantity */}
       <div className="flex items-center flex-row justify-between gap-1">
-        <div className="font-medium capitalize flex">{item.name}</div>
+        <div className="font-medium flex">{item.name}</div>
         {!!item.weight && (
           <div className="badge badge-outline">{item.weight}g</div>
         )}
-        <div className="flex min-w-[225px] max-w-[225px] flex-row gap-1 p-1 items-center">
+        <div className="flex min-w-[275px] max-w-[275px] flex-row gap-1 items-center">
           <div className="divider divider-horizontal p-0 m-0"></div>
           <div className="flex">Unpacked quantity </div>
           <div
-            className="btn btn-sm "
+            className="btn btn-sm"
             onClick={() => {
               // decrease quanity by 1
               const nextQuantity = Math.max(0, item.quantity - 1);
-              handleQuantityChange(
-                item.itemId,
-                item.quantity,
-                item.quantity - 1,
-              );
-              // if quantity hits 0, set as packed
-              if (nextQuantity === 0) {
-                handleStatusChange(item.itemId, item.status, "packed");
-              }
+              handleItemChange({
+                itemId: item.itemId,
+                quantity: nextQuantity,
+                status: nextQuantity === 0 ? "packed" : item.status,
+              });
             }}
           >
             <FaMinus />
           </div>
-          <div className="badge badge-xl w-[35px]">{item.quantity}</div>
+          <div className="badge badge-xl w-[35px] items-center">
+            {item.quantity}
+          </div>
           <div
             className="btn btn-sm"
             onClick={() => {
               // increase quantity by 1, set as unpacked
-              handleQuantityChange(
-                item.itemId,
-                item.quantity,
-                item.quantity + 1,
-              );
-              handleStatusChange(item.itemId, item.status, "unpacked");
+              handleItemChange({
+                itemId: item.itemId,
+                quantity: item.quantity + 1,
+                status: "packed",
+              });
             }}
           >
             <FaPlus />
@@ -160,7 +169,12 @@ function Item({
           className={`btn btn-xl flex-1 btn-warning ${
             item.status === "leave" ? "" : "btn-outline"
           }`}
-          onClick={() => handleStatusChange(item.itemId, item.status, "leave")}
+          onClick={() =>
+            handleItemChange({
+              itemId: item.itemId,
+              status: "leave",
+            })
+          }
         >
           <FaPlaneDeparture />
           Leave
@@ -173,19 +187,21 @@ function Item({
           onClick={() => {
             // if quantity is 0, and click packed, set to unpacked, quantity 1
             if (item.quantity === 0 && item.status === "packed") {
-              handleQuantityChange(item.itemId, item.quantity, 1);
-              handleStatusChange(item.itemId, item.status, "unpacked");
+              handleItemChange({
+                itemId: item.itemId,
+                quantity: 1,
+                status: "unpacked",
+              });
               return;
             }
             // else get new quantity
-            const nextQuantity = Math.max(0, item.quantity - 1);
-            handleQuantityChange(item.itemId, item.quantity, nextQuantity);
             // if zero, set as packed
-            if (nextQuantity === 0) {
-              handleStatusChange(item.itemId, item.status, "packed");
-            } else {
-              handleStatusChange(item.itemId, item.status, "unpacked");
-            }
+            const nextQuantity = Math.max(0, item.quantity - 1);
+            handleItemChange({
+              itemId: item.itemId,
+              quantity: nextQuantity === 0 ? "packed" : "unpacked",
+              status: nextQuantity,
+            });
           }}
         >
           <FaSuitcase />
@@ -209,27 +225,24 @@ type ItemsGroup = [string | undefined, GearListDisplayItem[]];
 
 export function GearListItemsSmall({
   itemsGrouped,
-  handleStatusChange,
-  handleQuantityChange,
+  handleItemChange,
 }: {
   itemsGrouped: ItemsGroup[];
-  handleStatusChange: StatusChangeHandler;
-  handleQuantityChange: QuantityChangeHandler;
+  handleItemChange: any;
 }) {
   return (
     <div className="flex flex-col gap-3 md:hidden">
       {itemsGrouped.map(([group, itemsGroup]) => {
         return (
           <div key={group}>
-            <div className="capitalize font-bold divider">{group}</div>
+            <div className="font-bold divider">{group}</div>
             <div className="flex flex-col gap-1">
               {itemsGroup.map((item) => {
                 return (
                   <Item
                     key={item.itemId}
                     item={item}
-                    handleStatusChange={handleStatusChange}
-                    handleQuantityChange={handleQuantityChange}
+                    handleItemChange={handleItemChange}
                   />
                 );
               })}
@@ -244,12 +257,10 @@ export function GearListItemsSmall({
 
 export function GearListItemsLarge({
   itemsGrouped,
-  handleStatusChange,
-  handleQuantityChange,
+  handleItemChange,
 }: {
   itemsGrouped: ItemsGroup[];
-  handleStatusChange: StatusChangeHandler;
-  handleQuantityChange: QuantityChangeHandler;
+  handleItemChange: any;
 }) {
   return (
     <div className="hidden md:flex w-full h-full flex-row gap-1">
@@ -260,14 +271,13 @@ export function GearListItemsLarge({
             key={group}
             className="flex flex-shrink-0 min-h-0 h-full w-fit flex-col gap-2"
           >
-            <div className="capitalize font-bold">{group}</div>
+            <div className="font-bold">{group}</div>
             <div className="flex flex-col gap-2">
               {itemsGrouped.map((item) => (
                 <Item
                   key={item.itemId}
                   item={item}
-                  handleStatusChange={handleStatusChange}
-                  handleQuantityChange={handleQuantityChange}
+                  handleItemChange={handleItemChange}
                 />
               ))}
             </div>
@@ -289,32 +299,28 @@ export default function GearList() {
   const queryClient = useQueryClient();
 
   // sort mode
-  const [sortMode, setSortMode] = useState("category");
+  const [sort, setSort] = useState({ mode: "category", ascending: true });
 
   // get gear list
   const params = useParams();
   const gearListId = params.gearListId as string;
-  const { data: gearList, isLoading: gearListLoading } = useData(
+  const { data: gearList = {}, isLoading: gearListLoading } = useData(
     `/api/gear-lists/${gearListId}`,
   );
 
   // if gear list is being shared, clone and add to users gear lists
-  const cloneGearList = useDataMutation(
-    `/api/gear-lists/${gearListId}/clone`,
-    "POST",
-    ["/api/gear-lists", "/api/items"],
-  );
+  const mutationGearListClone = useMutationGearListClone();
   useEffect(() => {
     (async () => {
-      if (!gearList) return;
+      if (!gearList?.id) return;
       if (!session?.user?.id) return;
       if (gearList.userId && gearList.userId === session.user.id) return;
-      const cloned = await cloneGearList.mutateAsync({
-        gearListId,
+      const cloned = await mutationGearListClone.mutateAsync({
+        gearList,
       });
       router.replace(`/dashboard/gear-lists/${cloned.id}`);
     })();
-  }, [session?.user?.id, gearList]);
+  }, [session?.user?.id, gearList, gearList?.id]);
 
   // go through gear list items and fetch item info for each item from items db
   const { data: items = [], isLoading: itemsLoading } = useData("/api/items");
@@ -330,10 +336,16 @@ export default function GearList() {
     } else {
       return items;
     }
-  }, [items, itemsDefaults, session?.user?.canModifyDefaults]);
+  }, [
+    items,
+    itemsDefaults,
+    session?.user?.canModifyDefaults,
+    itemsLoadingDefaults,
+    itemsLoading,
+  ]);
 
   const gearListItems: GearListDisplayItem[] = useMemo(() => {
-    if (!gearList?.items || !items || !itemsDefaults) return [];
+    if (!gearList?.items || !itemsAll) return [];
     return gearList.items
       .map((gearListItem: GearListItem): GearListDisplayItem | null => {
         const item = itemsAll.find(
@@ -355,12 +367,7 @@ export default function GearList() {
         (item: GearListDisplayItem | null): item is GearListDisplayItem =>
           item !== null,
       );
-  }, [gearList, items]);
-
-  // get categories
-  const categories: (string | undefined)[] = [
-    ...new Set(gearListItems.map((item) => item.category)),
-  ].sort();
+  }, [gearList?.items, itemsAll]);
 
   // summary counts and packed weight
   const summary = useMemo(() => {
@@ -381,10 +388,16 @@ export default function GearList() {
     return { ...counts, packedWeight, hasWeight };
   }, [gearListItems]);
 
+  const categories: (string | undefined)[] = [
+    ...new Set(gearListItems.map((item) => item.category)),
+  ].sort();
+
   // group items by status or category to display
   const itemsGrouped: ItemsGroup[] = useMemo(() => {
-    if (sortMode === "status") {
-      const statuses: GearListItemStatus[] = ["unpacked", "leave", "packed"];
+    if (sort?.mode === "status") {
+      const statuses: GearListItemStatus[] = sort?.ascending
+        ? ["unpacked", "leave", "packed"]
+        : ["packed", "leave", "unpacked"];
       return statuses.map((status): ItemsGroup => {
         const itemsStatus = gearListItems.filter(
           (item) => item.status === status,
@@ -393,7 +406,8 @@ export default function GearList() {
         return [status, itemsStatus];
       });
     }
-    if (sortMode === "category") {
+    if (sort?.mode === "category") {
+      // get categories
       return categories
         .map((category): ItemsGroup => {
           const itemsCategory = gearListItems.filter(
@@ -418,223 +432,156 @@ export default function GearList() {
         });
     }
     return [];
-  }, [gearListItems, items, sortMode]);
+  }, [gearListItems, categories, sort]);
 
-  // functions to update status when changed by user
-  const handleStatusChange = (
-    itemId: string,
-    currentStatus: GearListItemStatus,
-    nextStatus: GearListItemStatus,
-  ) => {
-    const status = currentStatus === nextStatus ? "unpacked" : nextStatus;
-    updateStatus.mutate({ itemId, status });
-  };
-  const updateStatus = useMutation({
-    mutationFn: async ({
-      itemId,
-      status,
-    }: {
-      itemId: string;
-      status: GearListItemStatus;
-    }) => {
-      const res = await fetch(`/api/gear-lists/${gearListId}/items/${itemId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to update item status");
-      }
-      return { itemId, status };
-    },
-    onMutate: async ({ itemId, status }) => {
-      queryClient.setQueryData(
-        [`/api/gear-lists/${gearListId}`, undefined],
-        (old: DraftGearList | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            items: old.items.map((item) =>
-              item.itemId === itemId ? { ...item, status } : item,
-            ),
-          };
-        },
-      );
-    },
-    // onSuccess: () => {
-    //   queryClient.invalidateQueries([`/api/gear-lists/${gearListId}`]);
-    // },
-  });
+  // gear list item save mutation
+  const mutationGearListItemSave = useMutationGearListItemSave();
 
-  // functions to update quantity when changed by user
-  const handleQuantityChange = (
-    itemId: string,
-    currentQuantity: number,
-    nextQuantity: number,
-  ) => {
-    nextQuantity = Math.max(nextQuantity, 0);
-    updateQuantity.mutate({ itemId, quantity: nextQuantity });
-  };
-  const updateQuantity = useMutation({
-    mutationFn: async ({
-      itemId,
-      quantity,
-    }: {
-      itemId: string;
-      quantity: number;
-    }) => {
-      const res = await fetch(`/api/gear-lists/${gearListId}/items/${itemId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ quantity }),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to update item status");
-      }
-      return { itemId, quantity };
-    },
-    onMutate: async ({ itemId, quantity }) => {
-      queryClient.setQueryData(
-        [`/api/gear-lists/${gearListId}`, undefined],
-        (old: DraftGearList | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            items: old.items.map((item) =>
-              item.itemId === itemId ? { ...item, quantity } : item,
-            ),
-          };
-        },
-      );
-    },
-    // onSuccess: () => {
-    //   queryClient.invalidateQueries([`/api/gear-lists/${gearListId}`]);
-    // },
-  });
-
-  // reset status
-  const resetStatus = function () {
-    gearList.items.map((item: GearListItem) => {
-      updateStatus.mutate({ itemId: item.itemId, status: "unpacked" });
-      updateQuantity.mutate({ itemId: item.itemId, quantity: 1 });
+  // functions to update status, quantity when changed by user
+  const handleItemChange = (item: Item) => {
+    mutationGearListItemSave.mutateAsync({
+      gearListId: gearList.id,
+      itemId: item.itemId,
+      item,
     });
   };
 
+  // reset status
+  const mutationGearListSave = useMutationGearListSave();
+  const resetStatus = function () {
+    const newItems = gearList.items.map((item: GearListItem) => {
+      return { ...item, quantity: 1, status: "unpacked" };
+    });
+    const newGearList = {
+      ...gearList,
+      items: newItems,
+    };
+    mutationGearListSave.mutateAsync({ gearList: newGearList });
+  };
+
   // initial gear list state for making edits
-  const [initialGearList, setInitialGearList] =
-    useState<DraftGearList | null>(null);
+  const [initialGearList, setInitialGearList] = useState<DraftGearList | null>(
+    null,
+  );
 
   if (gearListLoading || itemsLoading) return <Loading />;
   if (!gearList) return <Loading />;
   if (gearList?.isDefault && !session?.user?.canModifyDefaults)
     return <Loading />;
-  if (cloneGearList.isPending) return <Loading />;
+  if (mutationGearListClone.isPending) return <Loading />;
 
   return (
-    <div className="flex h-full w-full min-h-0 flex-col">
-      <div className="flex w-full flex-shrink-0 flex-col">
-        <div className="flex w-full flex-row flex-wrap items-center justify-between gap-1">
-          {/* title + summary badges */}
-          <div className="order-1 flex min-w-0 flex-1 flex-row flex-wrap items-center gap-1">
-            {/* title */}
-            <div className="font-bold capitalize">{gearList.name}</div>
+    <div className="flex h-full w-full min-h-0 flex flex-col">
+      {/* header */}
+      <div className="flex w-full flex-shrink-0 flex-row flex-wrap justify-between gap-1">
+        {/* title */}
+        <div className="flex font-bold">{gearList.name}</div>
 
-            {/* summary badges */}
-            <div className="flex flex-row flex-wrap items-center gap-1">
-              <div
-                className={`badge badge-lg badge-error gap-1 ${
-                  summary.unpacked === 0 ? "badge-outline" : ""
-                }`}
-              >
-                <FaBoxOpen />
-                <span className="hidden md:inline">unpacked</span>
-                <span className="badge badge-sm bg-base-100 text-base-content">
-                  {summary.unpacked}
-                </span>
-              </div>
-              <div
-                className={`badge badge-lg badge-warning gap-1 ${
-                  summary.leave === 0 ? "badge-outline" : ""
-                }`}
-              >
-                <FaPlaneDeparture />
-                <span className="hidden md:inline">leave</span>
-                <span className="badge badge-sm bg-base-100 text-base-content">
-                  {summary.leave}
-                </span>
-              </div>
-              <div
-                className={`badge badge-lg badge-success gap-1 ${
-                  summary.packed === 0 ? "badge-outline" : ""
-                }`}
-              >
-                <FaSuitcase />
-                <span className="hidden md:inline">packed</span>
-                <span className="badge badge-sm bg-base-100 text-base-content">
-                  {summary.packed}
-                </span>
-              </div>
-              {summary.hasWeight && (
-                <div className="badge badge-lg badge-success badge-outline gap-1">
-                  <span className="hidden md:inline">packed weight</span>
-                  <span className="badge badge-sm bg-base-100 text-base-content">
-                    {summary.packedWeight}g
-                  </span>
-                </div>
-              )}
-            </div>
+        {/* summary badges */}
+        <div className="flex flex-row flex-wrap items-center gap-1">
+          <div
+            className={`badge badge-lg badge-error gap-1 ${
+              summary.unpacked === 0 ? "badge-outline" : ""
+            }`}
+          >
+            <FaBoxOpen />
+            <span className="hidden md:inline">unpacked</span>
+            <span className="badge badge-sm bg-base-100 text-base-content">
+              {summary.unpacked}
+            </span>
           </div>
-
-          {/* share, reset, edit, back */}
-          <div className="order-2 w-full flex flex-row gap-1 md:order-4 md:w-auto">
-            {/* share */}
-            <Copy endpoint={`/dashboard/gear-lists/${gearList.id}`} />
-            {/* reset */}
-            <div className="btn btn-lg btn-warning" onClick={resetStatus}>
-              <RiResetLeftFill />
-            </div>
-            {/* edit  */}
-            <div
-              className="btn btn-lg btn-info"
-              onClick={() => setInitialGearList(gearList)}
-            >
-              <FaEdit />
-            </div>
-            {/* back */}
-            <div
-              className="btn btn-lg"
-              onClick={() => redirect("/dashboard/gear-lists")}
-            >
-              <IoReturnDownBack />
-            </div>
+          <div
+            className={`badge badge-lg badge-warning gap-1 ${
+              summary.leave === 0 ? "badge-outline" : ""
+            }`}
+          >
+            <FaPlaneDeparture />
+            <span className="hidden md:inline">leave</span>
+            <span className="badge badge-sm bg-base-100 text-base-content">
+              {summary.leave}
+            </span>
           </div>
+          <div
+            className={`badge badge-lg badge-success gap-1 ${
+              summary.packed === 0 ? "badge-outline" : ""
+            }`}
+          >
+            <FaSuitcase />
+            <span className="hidden md:inline">packed</span>
+            <span className="badge badge-sm bg-base-100 text-base-content">
+              {summary.packed}
+            </span>
+          </div>
+          {summary.hasWeight && (
+            <div className="badge badge-lg badge-success badge-outline gap-1">
+              <span className="hidden md:inline">packed weight</span>
+              <span className="badge badge-sm bg-base-100 text-base-content">
+                {summary.packedWeight}g
+              </span>
+            </div>
+          )}
+        </div>
 
-          {/* sort display*/}
-          <div className="order-3 w-full flex flex-row flex-wrap gap-1 md:order-3 md:w-auto">
-            {/* category */}
-            <div
-              className={`flex btn btn-lg ${
-                sortMode === "category" ? "btn-active" : ""
-              }`}
-              onClick={() => setSortMode("category")}
-            >
-              <FaLayerGroup />
-              Category
-            </div>
-            {/* status */}
-            <div
-              className={`flex btn btn-lg ${
-                sortMode === "status" ? "btn-active" : ""
-              }`}
-              onClick={() => setSortMode("status")}
-            >
-              <FaSortAmountDown />
-              Status
-            </div>
+        {/* share, reset, edit, back */}
+        <div className="order-2 w-full flex flex-row gap-1 md:order-4 md:w-auto">
+          {/* share */}
+          <Copy endpoint={`/dashboard/gear-lists/${gearList.id}`} />
+          {/* reset */}
+          <div className="btn btn-lg btn-warning" onClick={resetStatus}>
+            <RiResetLeftFill />
+          </div>
+          {/* edit  */}
+          <div
+            className="btn btn-lg btn-info"
+            onClick={() => setInitialGearList(gearList)}
+          >
+            <FaEdit />
+          </div>
+          {/* back */}
+          <div
+            className="btn btn-lg"
+            onClick={() => redirect("/dashboard/gear-lists")}
+          >
+            <IoReturnDownBack />
+          </div>
+        </div>
+
+        {/* sort display*/}
+        <div className="order-3 w-full flex flex-row flex-wrap gap-1 md:order-3 md:w-auto">
+          {/* category */}
+          <div
+            className={`flex btn btn-lg ${
+              sort?.mode === "category" ? "btn-active" : ""
+            }`}
+            onClick={() =>
+              setSort((prev) => {
+                return {
+                  ...prev,
+                  mode: "category",
+                };
+              })
+            }
+          >
+            <FaLayerGroup />
+            Category
+          </div>
+          {/* status */}
+          <div
+            className={`flex btn btn-lg ${
+              sort?.mode === "status" ? "btn-active" : ""
+            }`}
+            onClick={() =>
+              setSort((prev) => {
+                if (prev.mode === "status") {
+                  return { ...prev, ascending: !prev.ascending };
+                } else {
+                  return { ...prev, mode: "status" };
+                }
+              })
+            }
+          >
+            {sort?.ascending ? <FaSortAmountUp /> : <FaSortAmountDown />}
+            Status
           </div>
         </div>
       </div>
@@ -642,6 +589,7 @@ export default function GearList() {
       {/* divider */}
       <div className="divider m-0 m-0"></div>
 
+      {/* gear list items */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {itemsGrouped.length === 0 ? (
           <GearListItemsNil />
@@ -650,21 +598,19 @@ export default function GearList() {
             {/* one column, small screen only */}
             <GearListItemsSmall
               itemsGrouped={itemsGrouped}
-              handleStatusChange={handleStatusChange}
-              handleQuantityChange={handleQuantityChange}
+              handleItemChange={handleItemChange}
             />
 
             {/* multiple columns, large screen only */}
             <GearListItemsLarge
               itemsGrouped={itemsGrouped}
-              handleStatusChange={handleStatusChange}
-              handleQuantityChange={handleQuantityChange}
+              handleItemChange={handleItemChange}
             />
           </>
         )}
       </div>
 
-      {/* initialGearList save modal */}
+      {/*  save modal */}
       {initialGearList && (
         <GearListSave
           initialGearList={initialGearList}

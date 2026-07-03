@@ -1,8 +1,8 @@
 import { FaTimes } from "react-icons/fa";
-import { useDataMutation } from "@/mutators";
 import { Dispatch, SetStateAction, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Item } from "@/lib/domain/models/item";
+import { useMutationItemSave } from "@/mutators";
 
 type DraftItem = Partial<Omit<Item, "weight" | "isDefault">> & {
   weight?: number | string;
@@ -24,17 +24,14 @@ export function ItemSave({
   const [saveItem, setSaveItem] = useState<DraftItem>(initialItem);
 
   // save item
-  const saveItemMutation = useDataMutation("/api/items", "PUT", [
-    "/api/items",
-    "/api/items/defaults",
-  ]);
+  const mutationItemSave = useMutationItemSave();
   const handleSave = function () {
     const item = {
       ...saveItem,
-      name: (saveItem.name ?? "").toLowerCase().trim(),
-      category: (saveItem.category ?? "").toLowerCase().trim(),
+      name: (saveItem.name ?? "").trim(),
+      category: (saveItem.category ?? "").trim(),
     };
-    saveItemMutation.mutateAsync(item);
+    mutationItemSave.mutateAsync({ item });
     setInitialItem(null);
   };
 
@@ -54,7 +51,7 @@ export function ItemSave({
             <div className="">Item name:</div>
             <input
               type="text"
-              className="capitalize input capitalize w-full"
+              className="input  w-full"
               placeholder="e.g. Trekking Poles"
               defaultValue={initialItem?.name}
               onChange={(e) => {
@@ -87,7 +84,7 @@ export function ItemSave({
           <div className="">
             <div className="">Category:</div>
             <select
-              className="select w-full capitalize"
+              className="select w-full"
               value={saveItem?.category ?? ""}
               onChange={(e) => {
                 setSaveItem((prev) => ({
@@ -100,7 +97,7 @@ export function ItemSave({
                 Select category
               </option>
               {categories.map((category) => (
-                <option key={category} value={category} className="capitalize">
+                <option key={category} value={category} className="">
                   {category}
                 </option>
               ))}

@@ -2,28 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-export function useData(path: string, params?: Record<string, any>) {
-  const queryKey = [path, params];
+export function useData(path: string) {
+  const queryKey = path.split("/").filter(Boolean);
+  console.log(queryKey);
   return useQuery({
-    queryKey,
+    queryKey: queryKey,
     queryFn: async () => {
-      const searchParams = new URLSearchParams();
-      Object.entries(params ?? {}).forEach(([key, value]) => {
-        if (value === undefined || value === null) return;
-        if (Array.isArray(value)) {
-          searchParams.set(key, value.join(","));
-        } else {
-          searchParams.set(key, String(value));
-        }
-      });
-      const url = searchParams.size
-        ? `${path}?${searchParams.toString()}`
-        : path;
-      const res = await fetch(url);
+      const res = await fetch(path);
       if (!res.ok) {
-        throw new Error(`Failed to fetch ${url}`);
+        throw new Error(`Failed to fetch ${path}`);
       }
-      return res.json();
+      const data = await res.json();
+      return data;
     },
   });
 }

@@ -48,7 +48,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           Added order-last so that if everything wraps, these buttons drop to a full new line at the bottom.
           Added sm:order-none so they stay in the middle when there is room.
         */}
-        <div className="flex flex-wrap items-center justify-center gap-1 order-last w-full xs:w-auto xs:order-none">
+        <div className="flex flex-wrap items-center justify-center gap-1 order-last w-full md:w-auto md:order-none">
           <div
             className={
               pathname.startsWith("/dashboard/gear-lists")
