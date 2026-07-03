@@ -1,6 +1,6 @@
 {
-  "name": "Gear Lists",
-  "short_name": "Gear Lists",
+  "name": "Lists",
+  "short_name": "Lists",
   "scope": "/",
   "start_url": "/",
   "display": "fullscreen",

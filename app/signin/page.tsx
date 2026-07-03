@@ -14,11 +14,11 @@ export function SignInContent() {
   const [status, setStatus] = useState("");
 
   const searchParams = useSearchParams();
-  const gearListId = searchParams.get("gearListId");
+  const listId = searchParams.get("listId");
 
-  const callbackUrl = gearListId
-    ? `/dashboard/gear-lists/${gearListId}`
-    : "/dashboard/gear-lists";
+  const callbackUrl = listId
+    ? `/dashboard/lists/${listId}`
+    : "/dashboard/lists";
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,13 +47,13 @@ export function SignInContent() {
             objectFit: "contain",
           }}
           src="/noun-checklist-circle-1676792.png"
-          alt="Gear Lists"
+          alt="Lists"
           className="h-full object-contain bg-white"
         />
       </div>
 
       {/* title */}
-      <h1 className="text-bold text-center">Welcome to Gear Lists.</h1>
+      <h1 className="text-bold text-center">Welcome to Lists.</h1>
 
       {/* sign in */}
       <div className="gap-5 flex flex-col">

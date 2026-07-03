@@ -1,40 +1,40 @@
-export type GearListItemStatus = "unpacked" | "leave" | "packed";
+export type ListItemStatus = "unpacked" | "leave" | "packed";
 
-export const STATUS_SORT_ORDER: Record<GearListItemStatus, number> = {
+export const STATUS_SORT_ORDER: Record<ListItemStatus, number> = {
   unpacked: 0,
   leave: 1,
   packed: 2,
 };
 
-type GearListItemInput = {
+type ListItemInput = {
   itemId: string;
-  status: GearListItemStatus;
+  status: ListItemStatus;
   quantity: number;
 };
 
-export class GearListItem {
+export class ListItem {
   itemId: string;
-  status: GearListItemStatus;
+  status: ListItemStatus;
   quantity: number;
-  constructor(init: GearListItem) {
+  constructor(init: ListItem) {
     this.itemId = init.itemId;
     this.status = init.status;
     this.quantity = init.quantity;
   }
 }
 
-class GearList {
+class List {
   id: string;
   name: string;
-  items: GearListItem[];
+  items: ListItem[];
   userId?: string;
   description?: string;
   isDefault?: boolean;
   clonedId?: string;
-  constructor(init: GearListModal) {
+  constructor(init: ListModal) {
     this.id = init.id;
     this.name = init.name;
-    this.items = init.items.map((item) => new GearListItem(item));
+    this.items = init.items.map((item) => new ListItem(item));
     this.userId = init.userId;
     this.description = init.description;
     this.isDefault = init.isDefault;
@@ -42,14 +42,14 @@ class GearList {
   }
 }
 
-interface GearListModal {
+interface ListModal {
   id: string;
   name: string;
-  items: GearListItemInput[];
+  items: ListItemInput[];
   userId?: string;
   description?: string;
   isDefault?: boolean;
   clonedId?: string;
 }
 
-export { GearList };
+export { List };

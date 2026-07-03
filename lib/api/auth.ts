@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { GearList } from "@/lib/domain/models/gearList";
+import { List } from "@/lib/domain/models/list";
 import { Item } from "@/lib/domain/models/item";
 import { NextResponse } from "next/server";
 
@@ -23,12 +23,12 @@ export async function requireUser(): Promise<
   return { user: session.user };
 }
 
-export function canModifyGearList(
-  gearList: GearList,
+export function canModifyList(
+  list: List,
   user: SessionUser,
 ): NextResponse | null {
-  if (gearList.userId === user.id) return null;
-  if (gearList.isDefault && user.canModifyDefaults) return null;
+  if (list.userId === user.id) return null;
+  if (list.isDefault && user.canModifyDefaults) return null;
   return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 }
 

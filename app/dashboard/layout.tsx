@@ -37,7 +37,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               objectFit: "contain",
             }}
             src="/noun-checklist-circle-1676792.png"
-            alt="Gear lists"
+            alt="Lists"
             className="h-full object-contain bg-white"
           />
         </div>
@@ -51,15 +51,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex flex-wrap items-center justify-center gap-1 order-last w-full md:w-auto md:order-none">
           <div
             className={
-              pathname.startsWith("/dashboard/gear-lists")
+              pathname.startsWith("/dashboard/lists")
                 ? "p-2 btn btn-info btn-xl btn-outline btn-active"
                 : "p-2 btn btn-info btn-xl btn-outline "
             }
             onClick={() => {
-              router.push(`/dashboard/gear-lists`); // Fixed redirect
+              router.push(`/dashboard/lists`); // Fixed redirect
             }}
           >
-            Gear Lists
+            Lists
           </div>
           <div
             className={

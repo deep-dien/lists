@@ -16,6 +16,6 @@ export default function Page() {
   } else if (!session?.user) {
     redirect("/signin");
   } else {
-    redirect("/dashboard/gear-lists");
+    redirect("/dashboard/lists");
   }
 }

@@ -1,4 +1,4 @@
-import { GearList, GearListItem } from "@/lib/domain/models/gearList";
+import { List, ListItem } from "@/lib/domain/models/list";
 import {
   useQuery,
   useMutation,
@@ -21,7 +21,7 @@ export function useMutationItemDelete() {
     onMutate: async ({ itemId }) => {
       queryClient.setQueryData(
         [`api`, `items`],
-        (old: DraftGearList | undefined) => {
+        (old: DraftList | undefined) => {
           if (!old) return old;
           return old.filter((i) => i.id != itemId);
         },
@@ -29,7 +29,7 @@ export function useMutationItemDelete() {
     },
     onSuccess: async () => {
       // await Promise.all([
-      //   queryClient.invalidateQueries({ queryKey: ["api", "gear-lists"] }),
+      //   queryClient.invalidateQueries({ queryKey: ["api", "lists"] }),
       //   queryClient.invalidateQueries({ queryKey: ["api", "items"] }),
       // ]);
     },
@@ -62,47 +62,47 @@ export function useMutationItemSave() {
     onSuccess: async () => {
       // await Promise.all([
       //   queryClient.invalidateQueries({ queryKey: ["api", "items"] }),
-      //   queryClient.invalidateQueries({ queryKey: ["api", "gear-lists"] }),
+      //   queryClient.invalidateQueries({ queryKey: ["api", "lists"] }),
       // ]);
     },
   });
 }
 
-// gear lists
+// lists
 
-export function useMutationGearListClone() {
+export function useMutationListClone() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ gearList }: { gearList: GearList }) => {
-      const res = await fetch(`/api/gear-lists/${gearList.id}/clone`, {
+    mutationFn: async ({ list }: { list: List }) => {
+      const res = await fetch(`/api/lists/${list.id}/clone`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error("Failed to clone gear");
-      const clonedGearList = await res.json();
-      return clonedGearList;
+      if (!res.ok) throw new Error("Failed to clone list");
+      const clonedList = await res.json();
+      return clonedList;
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["api", "gear-lists"] }),
+        queryClient.invalidateQueries({ queryKey: ["api", "lists"] }),
         queryClient.invalidateQueries({ queryKey: ["api", "items"] }),
       ]);
     },
   });
 }
 
-export function useMutationGearListItemSave() {
+export function useMutationListItemSave() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      gearListId,
+      listId,
       itemId,
       item,
     }: {
-      gearListId: string;
+      listId: string;
       itemId: string;
-      item: GearListItem;
+      item: ListItem;
     }) => {
-      const res = await fetch(`/api/gear-lists/${gearListId}/items/${itemId}`, {
+      const res = await fetch(`/api/lists/${listId}/items/${itemId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -112,13 +112,13 @@ export function useMutationGearListItemSave() {
       if (!res.ok) {
         throw new Error("Failed to update item status");
       }
-      const gearList = await res.json();
-      return gearList;
+      const list = await res.json();
+      return list;
     },
-    onMutate: async ({ gearListId, itemId, item }) => {
+    onMutate: async ({ listId, itemId, item }) => {
       queryClient.setQueryData(
-        ["api", "gear-lists", gearListId],
-        (old: DraftGearList | undefined) => {
+        ["api", "lists", listId],
+        (old: DraftList | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -129,24 +129,24 @@ export function useMutationGearListItemSave() {
         },
       );
     },
-    onSuccess: async ({ gearListId }) => {
+    onSuccess: async ({ listId }) => {
       // await Promise.all([
       //   queryClient.invalidateQueries({
-      //     queryKey: ["api", "gear-lists", gearListId],
+      //     queryKey: ["api", "lists", listId],
       //   }),
-      //   queryClient.invalidateQueries({ queryKey: ["api", "gear-lists"] }),
+      //   queryClient.invalidateQueries({ queryKey: ["api", "lists"] }),
       //   queryClient.invalidateQueries({ queryKey: ["api", "items"] }),
       // ]);
     },
   });
 }
 
-export function useMutationGearListDelete() {
+export function useMutationListDelete() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ gearListId }: { gearListId: string }) => {
-      console.log(gearListId);
-      const res = await fetch(`/api/gear-lists/${gearListId}`, {
+    mutationFn: async ({ listId }: { listId: string }) => {
+      console.log(listId);
+      const res = await fetch(`/api/lists/${listId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -155,78 +155,78 @@ export function useMutationGearListDelete() {
       if (!res.ok) {
         throw new Error("Failed to update item status");
       }
-      return { gearListId };
+      return { listId };
     },
-    onMutate: async ({ gearListId }) => {
+    onMutate: async ({ listId }) => {
       queryClient.setQueryData(
-        ["api", "gear-lists"],
-        (old: GearList[] | undefined) => {
+        ["api", "lists"],
+        (old: List[] | undefined) => {
           if (!old) return old;
-          return old.filter((gearList) => gearList.id != gearListId);
+          return old.filter((list) => list.id != listId);
         },
       );
     },
     onSuccess: async () => {
       // await Promise.all([
-      //   queryClient.invalidateQueries({ queryKey: ["api", "gear-lists"] }),
+      //   queryClient.invalidateQueries({ queryKey: ["api", "lists"] }),
       // ]);
     },
   });
 }
 
-export function useMutationGearListSave() {
+export function useMutationListSave() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ gearList }: { gearList: GearList }) => {
-      const res = await fetch(`/api/gear-lists`, {
+    mutationFn: async ({ list }: { list: List }) => {
+      const res = await fetch(`/api/lists`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(gearList),
+        body: JSON.stringify(list),
       });
       if (!res.ok) {
         throw new Error("Failed to update item status");
       }
-      const newGearList = await res.json();
-      return { gearList: newGearList };
+      const newList = await res.json();
+      return { list: newList };
     },
-    onMutate: async ({ gearList }) => {
-      // set invidiual gear list
+    onMutate: async ({ list }) => {
+      // set individual list
       queryClient.setQueryData(
-        [`api`, `gear-lists`, gearList.id],
-        (old: GearList | undefined) => {
+        [`api`, `lists`, list.id],
+        (old: List | undefined) => {
           if (!old) return old;
-          return { ...old, ...gearList };
+          return { ...old, ...list };
         },
       );
-      // set all gear lists
+      // set all lists
       queryClient.setQueryData(
-        [`api`, `gear-lists`],
-        (old: GearList[] | undefined) => {
+        [`api`, `lists`],
+        (old: List[] | undefined) => {
           if (!old) return old;
-          return old.map((gl) =>
-            gl.id === gearList.id ? { ...gl, ...gearList } : gl,
+          return old.map((l) =>
+            l.id === list.id ? { ...l, ...list } : l,
           );
         },
       );
-      // set all gear lists
+      // set default lists
       queryClient.setQueryData(
-        [`api`, `gear-lists`, "defaults"],
-        (old: GearList[] | undefined) => {
+        [`api`, `lists`, "defaults"],
+        (old: List[] | undefined) => {
           if (!old) return old;
-          return old.map((gl) =>
-            gl.id === gearList.id ? { ...gl, ...gearList } : gl,
+          return old.map((l) =>
+            l.id === list.id ? { ...l, ...list } : l,
           );
         },
       );
     },
-    onSuccess: async ({ gearList }) => {
+    onSuccess: async ({ list }) => {
       // await Promise.all([
       //   queryClient.invalidateQueries({
-      //     queryKey: ["api", "gear-lists", gearList.id],
+      //     queryKey: ["api", "lists", list.id],
       //   }),
-      //   queryClient.invalidateQueries({ queryKey: ["api", "gear-lists"] }),
+      //   queryClient.invalidateQueries({ queryKey: ["api", "lists"] }),
       // ]);
     },
   });

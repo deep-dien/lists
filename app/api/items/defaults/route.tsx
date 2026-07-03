@@ -1,6 +1,5 @@
 import { MongoItemRepo } from "@/lib/adapters/mongoItemRepo";
 import { requireUser } from "@/lib/api/auth";
-import { GearList } from "@/lib/domain/models/gearList";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 

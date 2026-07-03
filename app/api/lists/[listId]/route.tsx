@@ -1,17 +1,17 @@
-import { MongoGearListRepo } from "@/lib/adapters/mongoGearListRepo";
-import { canModifyGearList, requireUser } from "@/lib/api/auth";
-import { GearList } from "@/lib/domain/models/gearList";
+import { MongoListRepo } from "@/lib/adapters/mongoListRepo";
+import { canModifyList, requireUser } from "@/lib/api/auth";
+import { List } from "@/lib/domain/models/list";
 import { NextResponse } from "next/server";
 
-const gearListRepo = new MongoGearListRepo();
+const listRepo = new MongoListRepo();
 
-type RouteParams = { params: Promise<{ gearListId: string }> };
+type RouteParams = { params: Promise<{ listId: string }> };
 
 export async function GET(req: Request, { params }: RouteParams) {
   const authResult = await requireUser();
   if ("response" in authResult) return authResult.response;
-  const { gearListId } = await params;
-  const existing = await gearListRepo.findById(gearListId);
+  const { listId } = await params;
+  const existing = await listRepo.findById(listId);
   if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
@@ -21,16 +21,16 @@ export async function GET(req: Request, { params }: RouteParams) {
 export async function PUT(req: Request, { params }: RouteParams) {
   const authResult = await requireUser();
   if ("response" in authResult) return authResult.response;
-  const { gearListId } = await params;
-  const existing = await gearListRepo.findById(gearListId);
+  const { listId } = await params;
+  const existing = await listRepo.findById(listId);
   if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
-  const forbidden = canModifyGearList(existing, authResult.user);
+  const forbidden = canModifyList(existing, authResult.user);
   if (forbidden) return forbidden;
-  const body = (await req.json()) as Partial<GearList>;
-  const updated = await gearListRepo.upsert(
-    new GearList({
+  const body = (await req.json()) as Partial<List>;
+  const updated = await listRepo.upsert(
+    new List({
       ...existing,
       ...body,
       id: existing.id,
@@ -42,7 +42,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
   );
   if (!updated) {
     return NextResponse.json(
-      { message: "Failed to update gear list" },
+      { message: "Failed to update list" },
       { status: 500 },
     );
   }
@@ -53,15 +53,15 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
   const authResult = await requireUser();
   if ("response" in authResult) return authResult.response;
 
-  const { gearListId } = await params;
-  const existing = await gearListRepo.findById(gearListId);
+  const { listId } = await params;
+  const existing = await listRepo.findById(listId);
   if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
-  const forbidden = canModifyGearList(existing, authResult.user);
+  const forbidden = canModifyList(existing, authResult.user);
   if (forbidden) return forbidden;
 
-  const result = await gearListRepo.delete(gearListId);
+  const result = await listRepo.delete(listId);
   if (!result.success) {
     return NextResponse.json({ message: result.error }, { status: 500 });
   }
