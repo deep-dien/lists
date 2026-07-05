@@ -49,13 +49,21 @@ export function useMutationItemSave() {
     onMutate: async ({ item }) => {
       queryClient.setQueryData(["api", "items"], (old: Item[] | undefined) => {
         if (!old) return old;
-        return old.map((i) => (i.id === item.id ? { ...i, ...item } : i));
+        if (old.map((i) => i.id).includes(item.id)) {
+          return old.map((i) => (i.id === item.id ? { ...i, ...item } : i));
+        } else {
+          return [...old, item];
+        }
       });
       queryClient.setQueryData(
         ["api", "items", "defaults"],
         (old: Item[] | undefined) => {
           if (!old) return old;
-          return old.map((i) => (i.id === item.id ? { ...i, ...item } : i));
+          if (old.map((i) => i.id).includes(item.id)) {
+            return old.map((i) => (i.id === item.id ? { ...i, ...item } : i));
+          } else {
+            return [...old, item];
+          }
         },
       );
     },
@@ -120,11 +128,17 @@ export function useMutationListItemSave() {
         ["api", "lists", listId],
         (old: DraftList | undefined) => {
           if (!old) return old;
+          let items;
+          if (old.items.map((i) => i.itemId).includes(itemId)) {
+            items = old.items.map((i) =>
+              i.id === item.id ? { ...i, ...item } : i,
+            );
+          } else {
+            items = [...old, item];
+          }
           return {
             ...old,
-            items: old.items.map((i) =>
-              i.itemId === itemId ? { ...i, ...item } : i,
-            ),
+            items: items,
           };
         },
       );
@@ -158,13 +172,10 @@ export function useMutationListDelete() {
       return { listId };
     },
     onMutate: async ({ listId }) => {
-      queryClient.setQueryData(
-        ["api", "lists"],
-        (old: List[] | undefined) => {
-          if (!old) return old;
-          return old.filter((list) => list.id != listId);
-        },
-      );
+      queryClient.setQueryData(["api", "lists"], (old: List[] | undefined) => {
+        if (!old) return old;
+        return old.filter((list) => list.id != listId);
+      });
     },
     onSuccess: async () => {
       // await Promise.all([
@@ -201,23 +212,24 @@ export function useMutationListSave() {
         },
       );
       // set all lists
-      queryClient.setQueryData(
-        [`api`, `lists`],
-        (old: List[] | undefined) => {
-          if (!old) return old;
-          return old.map((l) =>
-            l.id === list.id ? { ...l, ...list } : l,
-          );
-        },
-      );
+      queryClient.setQueryData([`api`, `lists`], (old: List[] | undefined) => {
+        if (!old) return old;
+        if (old.map((l) => l.id).includes(list.id)) {
+          return old.map((l) => (l.id === list.id ? { ...l, ...list } : l));
+        } else {
+          return [...old, list];
+        }
+      });
       // set default lists
       queryClient.setQueryData(
         [`api`, `lists`, "defaults"],
         (old: List[] | undefined) => {
           if (!old) return old;
-          return old.map((l) =>
-            l.id === list.id ? { ...l, ...list } : l,
-          );
+          if (old.map((l) => l.id).includes(list.id)) {
+            return old.map((l) => (l.id === list.id ? { ...l, ...list } : l));
+          } else {
+            return [...old, list];
+          }
         },
       );
     },

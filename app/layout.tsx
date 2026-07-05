@@ -1,6 +1,7 @@
 // providers
 import { SessionWrapper } from "@/providers/SessionWrapper";
 import { QueryWrapper } from "@/providers/QueryWrapper";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -19,6 +20,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Lists",
   description: "Lists",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Lists",
+  },
 };
 
 export default function RootLayout({
@@ -33,6 +39,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-mono">
+        <ServiceWorkerRegistration />
         <SessionWrapper>
           <QueryWrapper>{children}</QueryWrapper>
         </SessionWrapper>
