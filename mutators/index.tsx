@@ -131,10 +131,10 @@ export function useMutationListItemSave() {
           let items;
           if (old.items.map((i) => i.itemId).includes(itemId)) {
             items = old.items.map((i) =>
-              i.id === item.id ? { ...i, ...item } : i,
+              i.itemId === itemId ? { ...i, ...item } : i,
             );
           } else {
-            items = [...old, item];
+            items = [...old.items, item];
           }
           return {
             ...old,
@@ -207,13 +207,13 @@ export function useMutationListSave() {
       queryClient.setQueryData(
         [`api`, `lists`, list.id],
         (old: List | undefined) => {
-          if (!old) return old;
+          if (!old) return list;
           return { ...old, ...list };
         },
       );
       // set all lists
       queryClient.setQueryData([`api`, `lists`], (old: List[] | undefined) => {
-        if (!old) return old;
+        if (!old) return [list];
         if (old.map((l) => l.id).includes(list.id)) {
           return old.map((l) => (l.id === list.id ? { ...l, ...list } : l));
         } else {
@@ -224,7 +224,7 @@ export function useMutationListSave() {
       queryClient.setQueryData(
         [`api`, `lists`, "defaults"],
         (old: List[] | undefined) => {
-          if (!old) return old;
+          if (!old) return [list];
           if (old.map((l) => l.id).includes(list.id)) {
             return old.map((l) => (l.id === list.id ? { ...l, ...list } : l));
           } else {
