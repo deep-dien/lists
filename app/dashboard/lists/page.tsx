@@ -2,13 +2,13 @@
 
 import { Loading } from "@/components/Loading";
 import { List as ListModel } from "@/lib/domain/models/list";
-import { useData } from "@/queries";
+import { useData, prefetchData } from "@/queries";
 import {
   useMutationListClone,
   useMutationListDelete,
 } from "@/mutators";
 import { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
@@ -52,7 +52,7 @@ export function ListRow({
         <Copy endpoint={`/dashboard/lists/${list.id}`} />
         {/* edit */}
         <div
-          className="flex min-w-0 btn btn-info btn-lg"
+          className="flex min-w-0 btn btn-info btn-md"
           onClick={() => {
             setInitialList(list);
           }}
@@ -61,7 +61,7 @@ export function ListRow({
         </div>
         {/* delete */}
         <div
-          className="flex min-w-0 btn btn-error btn-lg"
+          className="flex min-w-0 btn btn-error btn-md"
           onClick={() => {
             mutationListDelete.mutateAsync({ listId: list.id });
           }}
@@ -69,14 +69,13 @@ export function ListRow({
           <MdDelete />
         </div>
         {/* go to */}
-        <div
-          className="flex min-w-0 btn btn-success btn-lg"
-          onClick={() => {
-            redirect(`/dashboard/lists/${list.id}`);
-          }}
+        <Link
+          href={`/dashboard/lists/${list.id}`}
+          prefetch={true}
+          className="flex min-w-0 btn btn-success btn-md"
         >
           <IoReturnDownForward />
-        </div>
+        </Link>
       </div>
       <div className="divider p-1 m-0"></div>
     </div>
@@ -156,6 +155,17 @@ export default function Lists() {
     listsDefaultsLoading,
   ]);
 
+  // warm each list's data (and the items it renders) while online so
+  // navigating to a list still works offline
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    listsAll.forEach((list) => {
+      prefetchData(queryClient, `/api/lists/${list.id}`);
+    });
+    prefetchData(queryClient, "/api/items");
+    prefetchData(queryClient, "/api/items/defaults");
+  }, [listsAll, queryClient]);
+
   // listsAll sort
   listsAll.sort((a: ListModel, b: ListModel) => {
     if (a.isDefault != b.isDefault)
@@ -213,7 +223,7 @@ export default function Lists() {
       </div>
       {/* create new */}
       <div
-        className="btn btn-success btn-xl fixed bottom-2 right-2 z-50"
+        className="btn btn-success btn-lg fixed bottom-2 right-2 z-50"
         onClick={() => {
           setInitialList({ items: [] });
         }}

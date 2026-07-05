@@ -8,7 +8,7 @@ export function Copy({ endpoint }: { endpoint: string }) {
   return (
     <div>
       <div
-        className="btn btn-lg btn-primary"
+        className="btn btn-md btn-primary"
         id="copyUrl"
         onMouseEnter={() => {
           tooltipRefCopy.current?.open({

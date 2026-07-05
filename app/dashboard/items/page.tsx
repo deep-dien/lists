@@ -192,7 +192,7 @@ export default function Items() {
 
       {/* create button */}
       <div
-        className="btn btn-success btn-xl fixed bottom-2 right-2 z-50"
+        className="btn btn-success btn-lg fixed bottom-2 right-2 z-50"
         onClick={() => setInitialItem({})}
       >
         Create

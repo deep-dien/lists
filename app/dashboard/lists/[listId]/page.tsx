@@ -15,7 +15,8 @@ import {
   useMutationListSave,
 } from "@/mutators";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { redirect, useParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ListSave, DraftList } from "@/components/ListSave";
@@ -122,7 +123,7 @@ function Item({
           <div className="divider divider-horizontal p-0 m-0"></div>
           <div className="flex">Unpacked quantity </div>
           <div
-            className="btn btn-sm"
+            className="btn btn-xs"
             onClick={() => {
               // decrease quanity by 1
               const nextQuantity = Math.max(0, item.quantity - 1);
@@ -139,7 +140,7 @@ function Item({
             {item.quantity}
           </div>
           <div
-            className="btn btn-sm"
+            className="btn btn-xs"
             onClick={() => {
               // increase quantity by 1, set as unpacked
               handleItemChange({
@@ -157,7 +158,7 @@ function Item({
       {/* buttons */}
       <div className="flex gap-2">
         <button
-          className={`btn btn-xl flex-1 btn-warning ${
+          className={`btn btn-md flex-1 btn-warning ${
             item.status === "leave" ? "" : "btn-outline"
           }`}
           onClick={() => {
@@ -173,7 +174,7 @@ function Item({
         </button>
 
         <button
-          className={`btn btn-xl flex-1 btn-success ${
+          className={`btn btn-md flex-1 btn-success ${
             item.status === "packed" ? "" : "btn-outline"
           }`}
           onClick={() => {
@@ -428,7 +429,11 @@ export default function ListPage() {
   const mutationListItemSave = useMutationListItemSave();
 
   // functions to update status, quantity when changed by user
-  const handleItemChange = (item: Item) => {
+  const handleItemChange = (item: {
+    itemId: string;
+    status?: ListItemStatus;
+    quantity?: number;
+  }) => {
     mutationListItemSave.mutateAsync({
       listId: list.id,
       itemId: item.itemId,
@@ -472,7 +477,7 @@ export default function ListPage() {
             }`}
           >
             <FaBoxOpen />
-            <span className="hidden md:inline">Unpacked</span>
+            {/* <span className="hidden md:inline">Unpacked</span> */}
             <span className="badge badge-sm bg-base-100 text-base-content">
               {summary.unpacked}
             </span>
@@ -483,7 +488,7 @@ export default function ListPage() {
             }`}
           >
             <FaPlaneDeparture />
-            <span className="hidden md:inline">Leave</span>
+            {/* <span className="hidden md:inline">Leave</span> */}
             <span className="badge badge-sm bg-base-100 text-base-content">
               {summary.leave}
             </span>
@@ -494,7 +499,7 @@ export default function ListPage() {
             }`}
           >
             <FaSuitcase />
-            <span className="hidden md:inline">Packed</span>
+            {/* <span className="hidden md:inline">Packed</span> */}
             <span className="badge badge-sm bg-base-100 text-base-content">
               {summary.packed}
             </span>
@@ -514,30 +519,27 @@ export default function ListPage() {
           {/* share */}
           <Copy endpoint={`/dashboard/lists/${list.id}`} />
           {/* reset */}
-          <div className="btn btn-lg btn-warning" onClick={resetStatus}>
+          <div className="btn btn-md btn-warning" onClick={resetStatus}>
             <RiResetLeftFill />
           </div>
           {/* edit  */}
           <div
-            className="btn btn-lg btn-info"
+            className="btn btn-md btn-info"
             onClick={() => setInitialList(list)}
           >
             <FaEdit />
           </div>
           {/* back */}
-          <div
-            className="btn btn-lg"
-            onClick={() => redirect("/dashboard/lists")}
-          >
+          <Link href="/dashboard/lists" className="btn btn-md">
             <IoReturnDownBack />
-          </div>
+          </Link>
         </div>
 
         {/* sort display*/}
         <div className="order-3 w-full flex flex-row flex-wrap gap-1 md:order-3 md:w-auto">
           {/* category */}
           <div
-            className={`flex btn btn-lg ${
+            className={`flex btn btn-md ${
               sort?.mode === "category" ? "btn-active" : ""
             }`}
             onClick={() =>
@@ -554,7 +556,7 @@ export default function ListPage() {
           </div>
           {/* status */}
           <div
-            className={`flex btn btn-lg ${
+            className={`flex btn btn-md ${
               sort?.mode === "status" ? "btn-active" : ""
             }`}
             onClick={() =>

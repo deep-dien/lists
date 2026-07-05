@@ -73,7 +73,7 @@ export function SignInContent() {
             type="submit"
             onClick={(e) => handleMagicLink(e)}
             disabled={status === "sending" || !email}
-            className={`flex p-2 m-2 items-center w-[300px] btn btn-success btn-lg ${status === "sending" || !email ? "btn-disabled" : ""}`}
+            className={`flex p-2 m-2 items-center w-[300px] btn btn-success btn-md ${status === "sending" || !email ? "btn-disabled" : ""}`}
           >
             {status === "sending" ? "Sending…" : "Send magic link"}
           </button>

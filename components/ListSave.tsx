@@ -290,7 +290,7 @@ export function ListItems({
         <div className="gap-1 flex flex-row flex">
           {/* category */}
           <div
-            className={`flex btn btn-lg ${
+            className={`flex btn btn-md ${
               sort?.mode === "category" ? "btn-active" : ""
             }`}
             onClick={() =>
@@ -304,7 +304,7 @@ export function ListItems({
           </div>
           {/* added */}
           <div
-            className={`flex btn btn-lg ${
+            className={`flex btn btn-md ${
               sort?.mode === "added" ? "btn-active" : ""
             }`}
             onClick={() => {

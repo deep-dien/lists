@@ -48,7 +48,7 @@ export function useMutationItemSave() {
     },
     onMutate: async ({ item }) => {
       queryClient.setQueryData(["api", "items"], (old: Item[] | undefined) => {
-        if (!old) return old;
+        if (!old) return [item];
         if (old.map((i) => i.id).includes(item.id)) {
           return old.map((i) => (i.id === item.id ? { ...i, ...item } : i));
         } else {
@@ -58,7 +58,7 @@ export function useMutationItemSave() {
       queryClient.setQueryData(
         ["api", "items", "defaults"],
         (old: Item[] | undefined) => {
-          if (!old) return old;
+          if (!old) return [item];
           if (old.map((i) => i.id).includes(item.id)) {
             return old.map((i) => (i.id === item.id ? { ...i, ...item } : i));
           } else {
@@ -108,7 +108,7 @@ export function useMutationListItemSave() {
     }: {
       listId: string;
       itemId: string;
-      item: ListItem;
+      item: Partial<ListItem> & { itemId: string };
     }) => {
       const res = await fetch(`/api/lists/${listId}/items/${itemId}`, {
         method: "PUT",
