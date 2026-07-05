@@ -154,13 +154,18 @@ export function ListItems({
     "/api/items/defaults",
   );
 
-  // items all
-  let itemsAll: ItemModel[] = [];
-  if (session?.user?.canModifyDefaults) {
-    itemsAll = [...items, ...itemsDefaults];
-  } else {
-    itemsAll = items;
-  }
+  // items all (own defaults come back from both endpoints — dedupe by id)
+  const canModifyDefaults = session?.user?.canModifyDefaults;
+  const itemsAll: ItemModel[] = useMemo(() => {
+    if (!canModifyDefaults) return items;
+    const itemIds = items.map((item: ItemModel) => item.id);
+    return [
+      ...items,
+      ...itemsDefaults.filter(
+        (item: ItemModel) => !itemIds.includes(item.id),
+      ),
+    ];
+  }, [items, itemsDefaults, canModifyDefaults]);
 
   // sort mode
   const [sort, setSort] = useState({ mode: "category", ascending: true });
@@ -203,12 +208,20 @@ export function ListItems({
           );
           return [category, itemsCategory];
         });
+        // items saved without a category would otherwise never render
+        const itemsUncategorized = itemsGroup.filter((item) => !item.category);
+        if (itemsUncategorized.length) {
+          itemsUncategorized.sort((a, b) =>
+            (a.name ?? "").localeCompare(b.name ?? ""),
+          );
+          subgroups.push(["uncategorized", itemsUncategorized]);
+        }
         return [group, subgroups];
       });
     }
 
     if (sort?.mode === "category") {
-      return categories
+      const groups = categories
         .map((category): ItemsGroup => {
           const itemsCategory = itemsAll.filter(
             (item) => item.category === category,
@@ -231,7 +244,17 @@ export function ListItems({
           );
           return addedA - addedB;
         });
+      // items saved without a category would otherwise never render
+      const itemsUncategorized = itemsAll.filter((item) => !item.category);
+      if (itemsUncategorized.length) {
+        itemsUncategorized.sort((a, b) =>
+          (a.name ?? "").localeCompare(b.name ?? ""),
+        );
+        groups.push(["uncategorized", [[null, itemsUncategorized]]]);
+      }
+      return groups;
     }
+    return [];
   }, [itemsAll, saveList.items, categories, sort]);
 
   // search
@@ -331,12 +354,12 @@ export function ListItems({
         {itemsFiltered.map(([group, subgroups]) => {
           return (
             <div key={group} className="gap-1">
-              <div className="divider font-bold flex">{group}</div>
+              <div className="divider p-0 m-0 font-bold flex">{group}</div>
               {subgroups.map(([subCategory, items]) => {
                 return (
                   <div key={subCategory ?? "all"} className="gap-1">
                     {subCategory && (
-                      <div className="divider flex">{subCategory}</div>
+                      <div className="divider p-0 m-0 flex">{subCategory}</div>
                     )}
                     <ItemsList
                       items={items}
@@ -442,10 +465,7 @@ export function ListSave({
               />
             </div>
           )}
-          <div
-            className="btn btn flex-1"
-            onClick={() => setInitialList(null)}
-          >
+          <div className="btn btn flex-1" onClick={() => setInitialList(null)}>
             Cancel
           </div>
         </div>

@@ -11,9 +11,23 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
+// Tell open pages the queued mutations reached the server so they can
+// refetch fresh data (replacing temp-id optimistic entries).
+const notifyReplayed = async () => {
+  const clients = await self.clients.matchAll();
+  for (const client of clients) {
+    client.postMessage("replayed");
+  }
+};
+
 // Queue for offline mutations — BackgroundSyncQueue handles IndexedDB storage,
 // sync event registration, and replay automatically.
-const mutationQueue = new BackgroundSyncQueue("offline-mutations");
+const mutationQueue = new BackgroundSyncQueue("offline-mutations", {
+  onSync: async ({ queue }) => {
+    await queue.replayRequests();
+    await notifyReplayed();
+  },
+});
 
 // Non-GET mutations to lists/items: try network, queue if offline and return
 // a synthetic 200 so React Query's optimistic updates don't roll back.
@@ -40,7 +54,7 @@ self.addEventListener("fetch", (event: FetchEvent) => {
 // Safari / browsers without Background Sync: client sends 'replay' when online.
 self.addEventListener("message", (event: ExtendableMessageEvent) => {
   if (event.data === "replay") {
-    event.waitUntil(mutationQueue.replayRequests());
+    event.waitUntil(mutationQueue.replayRequests().then(notifyReplayed));
   }
 });
 

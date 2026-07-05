@@ -69,8 +69,9 @@ class MongoItemRepo implements ItemRepo {
     const collection = await this.collection();
     // no id -> create
     if (!item.id) {
-      const collection = await this.collection();
-      const result = await collection.insertOne({
+      // insertOne's result only holds { acknowledged, insertedId }, not the
+      // document fields — return the doc we inserted, not the result
+      const doc = {
         _id: new ObjectId(),
         userId: item.userId,
         name: item.name,
@@ -79,9 +80,10 @@ class MongoItemRepo implements ItemRepo {
         category: item.category,
         isDefault: item.isDefault,
         clonedId: item.clonedId,
-      });
+      };
+      const result = await collection.insertOne(doc);
       if (!result.acknowledged) return null;
-      return this.docToItem({ _id: result.insertedId, ...result });
+      return this.docToItem(doc);
     }
     const updateDoc = {
       ...item,

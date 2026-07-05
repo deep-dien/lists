@@ -39,9 +39,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-mono">
-        <ServiceWorkerRegistration />
         <SessionWrapper>
-          <QueryWrapper>{children}</QueryWrapper>
+          <QueryWrapper>
+            <ServiceWorkerRegistration />
+            {children}
+          </QueryWrapper>
         </SessionWrapper>
       </body>
     </html>

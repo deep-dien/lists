@@ -116,7 +116,7 @@ class MongoListRepo implements ListRepo {
 
   async addItem(listId: string, item: ListItem): Promise<List | null> {
     const collection = await this.collection();
-    const result = await collection.updateOne(
+    await collection.updateOne(
       {
         _id: new ObjectId(listId),
         items: { $not: { $elemMatch: { itemId: item.itemId } } },
@@ -126,7 +126,8 @@ class MongoListRepo implements ListRepo {
         $currentDate: { updatedAt: true },
       },
     );
-    if (!result.modifiedCount) return null;
+    // no match also occurs when the item is already in the list — return the
+    // list either way so duplicate/replayed adds are idempotent
     return this.findById(listId);
   }
 
@@ -150,7 +151,9 @@ class MongoListRepo implements ListRepo {
         arrayFilters: [{ "elem.itemId": item.itemId }],
       },
     );
-    if (!updateResult.modifiedCount) return null;
+    // matchedCount, not modifiedCount: a no-op update (same status/quantity)
+    // matches but modifies nothing and is still a success
+    if (!updateResult.matchedCount) return null;
     return this.findById(listId);
   }
 
@@ -163,7 +166,9 @@ class MongoListRepo implements ListRepo {
         $currentDate: { updatedAt: true },
       },
     );
-    if (!result.modifiedCount) {
+    // matchedCount, not modifiedCount: pulling an already-removed item is
+    // still a success
+    if (!result.matchedCount) {
       return {
         success: false,
         error: `Failed to delete item ${itemId} from list ${listId}`,

@@ -16,6 +16,10 @@ export function useData(path: string) {
   return useQuery({
     queryKey: queryKey,
     queryFn: () => fetchPath(path),
+    // avoid refetching on every mount/focus: while flaky-offline those
+    // refetches get the SW's stale cached response, which would overwrite
+    // optimistic entries for still-queued mutations
+    staleTime: 30 * 1000,
   });
 }
 

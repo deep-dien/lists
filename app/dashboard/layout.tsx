@@ -101,7 +101,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <div className="divider m-0 p-1"></div>
+      <div className="divider m-0 p-0"></div>
       <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
     </div>
   );

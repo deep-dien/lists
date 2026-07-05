@@ -97,13 +97,18 @@ export default function Items() {
   // items default
   const { data: itemsDefaults = [] } = useData("/api/items/defaults");
 
-  // items all
-  let itemsAll: ItemModel[] = [];
-  if (session?.user?.canModifyDefaults) {
-    itemsAll = [...items, ...itemsDefaults];
-  } else {
-    itemsAll = items;
-  }
+  // items all (own defaults come back from both endpoints — dedupe by id)
+  const canModifyDefaults = session?.user?.canModifyDefaults;
+  const itemsAll: ItemModel[] = useMemo(() => {
+    if (!canModifyDefaults) return items;
+    const itemIds = items.map((item: ItemModel) => item.id);
+    return [
+      ...items,
+      ...itemsDefaults.filter(
+        (item: ItemModel) => !itemIds.includes(item.id),
+      ),
+    ];
+  }, [items, itemsDefaults, canModifyDefaults]);
 
   // categories
   const categories: string[] = [
@@ -117,7 +122,7 @@ export default function Items() {
   // sort items
   const itemsGrouped: ItemsCategoryGroup[] = useMemo(() => {
     if (!itemsAll) return [];
-    return categories.map((category): ItemsCategoryGroup => {
+    const groups = categories.map((category): ItemsCategoryGroup => {
       const itemsCategory = itemsAll.filter(
         (item) => item.category === category,
       );
@@ -128,6 +133,15 @@ export default function Items() {
       });
       return [category, itemsCategory];
     });
+    // items saved without a category would otherwise never render
+    const itemsUncategorized = itemsAll.filter((item) => !item.category);
+    if (itemsUncategorized.length) {
+      itemsUncategorized.sort((a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? ""),
+      );
+      groups.push(["uncategorized", itemsUncategorized]);
+    }
+    return groups;
   }, [itemsAll, categories]);
 
   // search
@@ -179,7 +193,7 @@ export default function Items() {
         {itemsFiltered.map(([category, itemsCategory]) => {
           return (
             <div key={category} className="gap-1">
-              <div className="font-bold flex divider">{category}</div>
+              <div className="font-bold flex divider p-0 m-0">{category}</div>
               <ItemsList
                 items={itemsCategory}
                 setInitialItem={setInitialItem}

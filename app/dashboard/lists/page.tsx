@@ -3,10 +3,7 @@
 import { Loading } from "@/components/Loading";
 import { List as ListModel } from "@/lib/domain/models/list";
 import { useData, prefetchData } from "@/queries";
-import {
-  useMutationListClone,
-  useMutationListDelete,
-} from "@/mutators";
+import { useMutationListClone, useMutationListDelete } from "@/mutators";
 import { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
@@ -77,7 +74,7 @@ export function ListRow({
           <IoReturnDownForward />
         </Link>
       </div>
-      <div className="divider p-1 m-0"></div>
+      <div className="divider p-0 m-0"></div>
     </div>
   );
 }
@@ -132,18 +129,24 @@ export default function Lists() {
   const { data: session, status } = useSession();
 
   // state
-  const { data: lists = [], isLoading: listsLoading } =
-    useData("/api/lists");
+  const { data: lists = [], isLoading: listsLoading } = useData("/api/lists");
 
   // filter for defaults
-  const { data: listsDefaults = [], isLoading: listsDefaultsLoading } =
-    useData("/api/lists/defaults");
+  const { data: listsDefaults = [], isLoading: listsDefaultsLoading } = useData(
+    "/api/lists/defaults",
+  );
 
-  // lists all
+  // lists all (own defaults come back from both endpoints — dedupe by id)
   const listsAll: ListModel[] = useMemo(() => {
     if (listsLoading || listsDefaultsLoading) return [];
     if (session?.user?.canModifyDefaults) {
-      return [...lists, ...listsDefaults];
+      const listIds = lists.map((list: ListModel) => list.id);
+      return [
+        ...lists,
+        ...listsDefaults.filter(
+          (list: ListModel) => !listIds.includes(list.id),
+        ),
+      ];
     } else {
       return lists;
     }

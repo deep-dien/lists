@@ -228,7 +228,7 @@ export function ListItemsSmall({
       {itemsGrouped.map(([group, itemsGroup]) => {
         return (
           <div key={group}>
-            <div className="font-bold divider capitalize">{group}</div>
+            <div className="font-bold divider p-0 m-0 capitalize">{group}</div>
             <div className="flex flex-col gap-1">
               {itemsGroup.map((item) => {
                 return (
@@ -468,7 +468,6 @@ export default function ListPage() {
       <div className="flex w-full flex-shrink-0 flex-row flex-wrap justify-between gap-1">
         {/* title */}
         <div className="flex font-bold">{list.name}</div>
-
         {/* summary badges */}
         <div className="flex flex-row flex-wrap items-center gap-1">
           <div
@@ -513,30 +512,8 @@ export default function ListPage() {
             </div>
           )}
         </div>
-
-        {/* share, reset, edit, back */}
-        <div className="order-2 w-full flex flex-row gap-1 md:order-4 md:w-auto">
-          {/* share */}
-          <Copy endpoint={`/dashboard/lists/${list.id}`} />
-          {/* reset */}
-          <div className="btn btn-md btn-warning" onClick={resetStatus}>
-            <RiResetLeftFill />
-          </div>
-          {/* edit  */}
-          <div
-            className="btn btn-md btn-info"
-            onClick={() => setInitialList(list)}
-          >
-            <FaEdit />
-          </div>
-          {/* back */}
-          <Link href="/dashboard/lists" className="btn btn-md">
-            <IoReturnDownBack />
-          </Link>
-        </div>
-
         {/* sort display*/}
-        <div className="order-3 w-full flex flex-row flex-wrap gap-1 md:order-3 md:w-auto">
+        <div className="p-1 flex flex-row flex-wrap gap-1">
           {/* category */}
           <div
             className={`flex btn btn-md ${
@@ -552,7 +529,7 @@ export default function ListPage() {
             }
           >
             <FaLayerGroup />
-            Category
+            <span className="hidden md:inline">Category</span>
           </div>
           {/* status */}
           <div
@@ -570,9 +547,29 @@ export default function ListPage() {
             }
           >
             {sort?.ascending ? <FaSortAmountUp /> : <FaSortAmountDown />}
-            Status
+            <span className="hidden md:inline">Status</span>
           </div>
         </div>
+        {/* share, reset, edit, back */}
+        <div className="flex flex-row gap-1">
+          {/* share */}
+          <Copy endpoint={`/dashboard/lists/${list.id}`} />
+          {/* reset */}
+          <div className="btn btn-md btn-warning" onClick={resetStatus}>
+            <RiResetLeftFill />
+          </div>
+          {/* edit  */}
+          <div
+            className="btn btn-md btn-info"
+            onClick={() => setInitialList(list)}
+          >
+            <FaEdit />
+          </div>
+          {/* back */}
+          <Link href="/dashboard/lists" className="btn btn-md">
+            <IoReturnDownBack />
+          </Link>
+        </div>{" "}
       </div>
 
       {/* divider */}
