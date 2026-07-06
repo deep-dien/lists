@@ -43,7 +43,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   if (status === "loading") return <Loading />;
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden p-1 gap-1">
+    <div className="flex h-screen w-full flex-col overflow-hidden p-2 gap-1">
       <header className="flex w-full flex-shrink-0 flex-row flex-wrap gap-1 items-center justify-between h-auto">
         {/* left logo */}
         <div className="flex h-[40px] items-center justify-center min-h-0">
@@ -66,7 +66,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div
             className={
               pathname.startsWith("/dashboard/lists")
-                ? "p-2 btn btn-info btn-lg btn-outline btn-active"
+                ? "p-2 btn btn-info btn-lg"
                 : "p-2 btn btn-info btn-lg btn-outline "
             }
             onClick={() => {
@@ -78,7 +78,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div
             className={
               pathname.startsWith("/dashboard/items")
-                ? "p-2 btn btn-info btn-lg btn-outline btn-active"
+                ? "p-2 btn btn-info btn-lg"
                 : "p-2 btn btn-info btn-lg btn-outline"
             }
             onClick={() => {
