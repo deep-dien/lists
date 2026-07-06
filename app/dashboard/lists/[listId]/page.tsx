@@ -206,12 +206,7 @@ function Item({
 }
 
 export function ListItemsNil() {
-  return (
-    <div className="alert">
-      <FaBoxOpen />
-      <span>No items in this list.</span>
-    </div>
-  );
+  return <div className="p-1 items-center w-full h-full"> No items found</div>;
 }
 
 type ItemsGroup = [string | undefined, ListDisplayItem[]];
@@ -228,7 +223,7 @@ export function ListItemsSmall({
       {itemsGrouped.map(([group, itemsGroup]) => {
         return (
           <div key={group}>
-            <div className="font-bold divider p-0 m-0 capitalize">{group}</div>
+            <div className="font-bold divider p-1 m-1 capitalize">{group}</div>
             <div className="flex flex-col gap-1">
               {itemsGroup.map((item) => {
                 return (
@@ -262,10 +257,10 @@ export function ListItemsLarge({
         return (
           <div
             key={group}
-            className="flex flex-shrink-0 min-h-0 h-full w-fit flex-col gap-2"
+            className="flex flex-shrink-0 min-h-0 h-full w-fit flex-col gap-1"
           >
             <div className="font-bold capitalize">{group}</div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               {itemsGrouped.map((item) => (
                 <Item
                   key={item.itemId}
@@ -425,6 +420,22 @@ export default function ListPage() {
     return [];
   }, [listItems, categories, sort]);
 
+  // search
+  const [search, setSearch] = useState("");
+  const itemsFiltered: ItemsGroup[] = itemsGrouped
+    .map(([group, itemsGroup]): ItemsGroup => {
+      const itemsFilter = itemsGroup.filter(
+        (item) =>
+          (item.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+          item.category.toLowerCase().includes(search.toLowerCase()) ||
+          (search.includes("default") && item?.isDefault),
+      );
+      return [group, itemsFilter];
+    })
+    .filter(
+      ([group, itemsGroup]) => !!itemsGroup?.length || group.includes(search),
+    );
+
   // list item save mutation
   const mutationListItemSave = useMutationListItemSave();
 
@@ -454,6 +465,8 @@ export default function ListPage() {
     mutationListSave.mutateAsync({ list: newList });
   };
 
+  console.log(itemsGrouped);
+
   // initial list state for making edits
   const [initialList, setInitialList] = useState<DraftList | null>(null);
 
@@ -465,13 +478,15 @@ export default function ListPage() {
   return (
     <div className="flex h-full w-full min-h-0 flex flex-col">
       {/* header */}
-      <div className="flex w-full flex-shrink-0 flex-row flex-wrap justify-between gap-1">
+      <div className="flex w-full flex-shrink-0 flex-row flex-wrap justify-between gap-1 p-0">
         {/* title */}
-        <div className="flex font-bold">{list.name}</div>
+        <div className="flex font-bold items-center order-1">{list.name}</div>
+
         {/* summary badges */}
-        <div className="flex flex-row flex-wrap items-center gap-1">
+        <div className="flex flex-row flex-wrap items-center gap-1 order-2">
+          {/* unpacked */}
           <div
-            className={`badge badge-lg badge-error gap-1 ${
+            className={`badge badge-lg badge-error gap-1 p-1 ${
               summary.unpacked === 0 ? "badge-outline" : ""
             }`}
           >
@@ -481,8 +496,9 @@ export default function ListPage() {
               {summary.unpacked}
             </span>
           </div>
+          {/* leave */}
           <div
-            className={`badge badge-lg badge-warning gap-1 ${
+            className={`badge badge-lg badge-warning gap-1 p-1 ${
               summary.leave === 0 ? "badge-outline" : ""
             }`}
           >
@@ -492,8 +508,9 @@ export default function ListPage() {
               {summary.leave}
             </span>
           </div>
+          {/* packed */}
           <div
-            className={`badge badge-lg badge-success gap-1 ${
+            className={`badge badge-lg badge-success gap-1 p-1 ${
               summary.packed === 0 ? "badge-outline" : ""
             }`}
           >
@@ -512,8 +529,9 @@ export default function ListPage() {
             </div>
           )}
         </div>
+
         {/* sort display*/}
-        <div className="p-1 flex flex-row flex-wrap gap-1">
+        <div className="flex flex-row flex-wrap gap-1 order-3">
           {/* category */}
           <div
             className={`flex btn btn-md ${
@@ -550,8 +568,23 @@ export default function ListPage() {
             <span className="hidden md:inline">Status</span>
           </div>
         </div>
+
+        {/* search */}
+        <div className="flex flex-shrink-0 flex-row items-center justify-between gap-1 order-last md:order-4">
+          {/* search  */}
+          <div className="flex-1 flex">
+            <input
+              type="text"
+              placeholder="Search..."
+              className="input flex-1"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
         {/* share, reset, edit, back */}
-        <div className="flex flex-row gap-1">
+        <div className="flex flex-row gap-1 order-4 md:order-5">
           {/* share */}
           <Copy endpoint={`/dashboard/lists/${list.id}`} />
           {/* reset */}
@@ -569,7 +602,7 @@ export default function ListPage() {
           <Link href="/dashboard/lists" className="btn btn-md">
             <IoReturnDownBack />
           </Link>
-        </div>{" "}
+        </div>
       </div>
 
       {/* divider */}
@@ -577,19 +610,19 @@ export default function ListPage() {
 
       {/* list items */}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {itemsGrouped.length === 0 ? (
+        {itemsFiltered.length === 0 ? (
           <ListItemsNil />
         ) : (
           <>
             {/* one column, small screen only */}
             <ListItemsSmall
-              itemsGrouped={itemsGrouped}
+              itemsGrouped={itemsFiltered}
               handleItemChange={handleItemChange}
             />
 
             {/* multiple columns, large screen only */}
             <ListItemsLarge
-              itemsGrouped={itemsGrouped}
+              itemsGrouped={itemsFiltered}
               handleItemChange={handleItemChange}
             />
           </>
