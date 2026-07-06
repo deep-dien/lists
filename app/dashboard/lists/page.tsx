@@ -135,6 +135,7 @@ export default function Lists() {
   const { data: listsDefaults = [], isLoading: listsDefaultsLoading } = useData(
     "/api/lists/defaults",
   );
+  listsDefaults.sort((a, b) => a.name.localeCompare(b.name));
 
   // lists all (own defaults come back from both endpoints — dedupe by id)
   const listsAll: ListModel[] = useMemo(() => {
@@ -145,7 +146,7 @@ export default function Lists() {
         ...lists,
         ...listsDefaults.filter(
           (list: ListModel) => !listIds.includes(list.id),
-        ),
+        ), // dedupe by id
       ];
     } else {
       return lists;

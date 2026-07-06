@@ -364,16 +364,16 @@ export default function ListPage() {
       leave: 0,
       packed: 0,
     };
-    let packedWeight = 0;
+    let packedWeightG = 0;
     let hasWeight = false;
     listItems.forEach((item) => {
       counts[item.status] += 1;
       if (item.weight) hasWeight = true;
       if (item.status === "packed") {
-        packedWeight += item.weight ?? 0;
+        packedWeightG += item.weight ?? 0;
       }
     });
-    return { ...counts, packedWeight, hasWeight };
+    return { ...counts, packedWeightKg: packedWeightG / 1000, hasWeight };
   }, [listItems]);
 
   const categories: (string | undefined)[] = [
@@ -422,19 +422,22 @@ export default function ListPage() {
 
   // search
   const [search, setSearch] = useState("");
-  const itemsFiltered: ItemsGroup[] = itemsGrouped
-    .map(([group, itemsGroup]): ItemsGroup => {
-      const itemsFilter = itemsGroup.filter(
-        (item) =>
-          (item.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-          item.category.toLowerCase().includes(search.toLowerCase()) ||
-          (search.includes("default") && item?.isDefault),
+  const itemsFiltered: ItemsGroup[] = useMemo(() => {
+    if (search === "") return itemsGrouped;
+    return itemsGrouped
+      .map(([group, itemsGroup]): ItemsGroup => {
+        const itemsFilter = itemsGroup.filter(
+          (item) =>
+            (item.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+            item.category.toLowerCase().includes(search.toLowerCase()) ||
+            (search.includes("default") && item?.isDefault),
+        );
+        return [group, itemsFilter];
+      })
+      .filter(
+        ([group, itemsGroup]) => !!itemsGroup?.length || group.includes(search),
       );
-      return [group, itemsFilter];
-    })
-    .filter(
-      ([group, itemsGroup]) => !!itemsGroup?.length || group.includes(search),
-    );
+  }, [itemsGrouped, search]);
 
   // list item save mutation
   const mutationListItemSave = useMutationListItemSave();
@@ -465,8 +468,6 @@ export default function ListPage() {
     mutationListSave.mutateAsync({ list: newList });
   };
 
-  console.log(itemsGrouped);
-
   // initial list state for making edits
   const [initialList, setInitialList] = useState<DraftList | null>(null);
 
@@ -486,46 +487,48 @@ export default function ListPage() {
         <div className="flex flex-row flex-wrap items-center gap-1 order-2">
           {/* unpacked */}
           <div
-            className={`badge badge-lg badge-error gap-1 p-1 ${
+            className={`items-center badge badge-lg badge-error w-[80px] gap-1 p-1 ${
               summary.unpacked === 0 ? "badge-outline" : ""
             }`}
           >
             <FaBoxOpen />
             {/* <span className="hidden md:inline">Unpacked</span> */}
-            <span className="badge badge-sm bg-base-100 text-base-content">
+            <span className="items-center  badge badge-sm bg-base-100 text-base-content">
               {summary.unpacked}
             </span>
           </div>
+
           {/* leave */}
-          <div
-            className={`badge badge-lg badge-warning gap-1 p-1 ${
+          {/* <div
+            className={`badge badge-lg badge-warning gap-1 p-1 w-[80px] ${
               summary.leave === 0 ? "badge-outline" : ""
             }`}
           >
             <FaPlaneDeparture />
-            {/* <span className="hidden md:inline">Leave</span> */}
+            <span className="hidden md:inline">Leave</span>
             <span className="badge badge-sm bg-base-100 text-base-content">
               {summary.leave}
             </span>
-          </div>
+          </div> */}
+
           {/* packed */}
-          <div
-            className={`badge badge-lg badge-success gap-1 p-1 ${
+          {/* <div
+            className={`badge badge-lg badge-success gap-1 p-1 w-[80px] ${
               summary.packed === 0 ? "badge-outline" : ""
             }`}
           >
             <FaSuitcase />
-            {/* <span className="hidden md:inline">Packed</span> */}
+            <span className="hidden md:inline">Packed</span>
             <span className="badge badge-sm bg-base-100 text-base-content">
               {summary.packed}
             </span>
-          </div>
+          </div> */}
+
+          {/* wieght */}
           {summary.hasWeight && (
-            <div className="badge badge-lg badge-success badge-outline gap-1">
-              <span className="hidden md:inline">packed weight</span>
-              <span className="badge badge-sm bg-base-100 text-base-content">
-                {summary.packedWeight}g
-              </span>
+            <div className="badge badge-lg badge-success badge-outline gap-1 p-1 w-[60px]">
+              {/* <span className="hidden md:inline">packed weight</span> */}
+              {summary.packedWeightKg}kg
             </div>
           )}
         </div>

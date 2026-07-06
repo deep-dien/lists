@@ -14,7 +14,7 @@ export function Copy({ endpoint }: { endpoint: string }) {
           tooltipRefCopy.current?.open({
             anchorSelect: "#copyUrl",
             place: "left",
-            content: "Copy trip link.",
+            content: "Copy list link.",
           });
         }}
         onClick={() => {
@@ -23,7 +23,7 @@ export function Copy({ endpoint }: { endpoint: string }) {
           tooltipRefCopy.current?.open({
             anchorSelect: "#copyUrl",
             place: "left",
-            content: "Trip link copied.",
+            content: "List link copied.",
           });
           setTimeout(() => {
             tooltipRefCopy.current?.close();
