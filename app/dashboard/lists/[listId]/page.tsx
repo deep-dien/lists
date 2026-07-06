@@ -534,7 +534,7 @@ export default function ListPage() {
         </div>
 
         {/* sort display*/}
-        <div className="flex flex-row flex-wrap gap-1 order-3">
+        <div className="flex flex-row flex-wrap gap-1 order-4 md:order-3">
           {/* category */}
           <div
             className={`flex btn btn-md ${
@@ -587,7 +587,7 @@ export default function ListPage() {
         </div>
 
         {/* share, reset, edit, back */}
-        <div className="flex flex-row gap-1 order-4 md:order-5">
+        <div className="flex flex-row gap-1 order-3 md:order-5">
           {/* share */}
           <Copy endpoint={`/dashboard/lists/${list.id}`} />
           {/* reset */}
