@@ -479,27 +479,28 @@ export default function ListPage() {
   return (
     <div className="flex h-full w-full min-h-0 flex flex-col">
       {/* header */}
-      <div className="flex w-full flex-shrink-0 flex-row flex-wrap justify-between gap-1 p-0">
+      <div className="flex w-full flex-shrink-0 flex-row flex-wrap justify-between gap-1 p-0 items-center">
         {/* title */}
-        <div className="flex font-bold items-center order-1">{list.name}</div>
+        <div className="flex flex-col">
+          <div className="flex font-bold items-center order-1">{list.name}</div>
 
-        {/* summary badges */}
-        <div className="flex flex-row flex-wrap items-center gap-1 order-2">
-          {/* unpacked */}
-          <div
-            className={`items-center badge badge-lg badge-error w-[80px] gap-1 p-1 ${
-              summary.unpacked === 0 ? "badge-outline" : ""
-            }`}
-          >
-            <FaBoxOpen />
-            {/* <span className="hidden md:inline">Unpacked</span> */}
-            <span className="items-center  badge badge-sm bg-base-100 text-base-content">
-              {summary.unpacked}
-            </span>
-          </div>
+          {/* summary badges */}
+          <div className="flex flex-row flex-wrap items-center gap-1 order-2">
+            {/* unpacked */}
+            <div
+              className={`items-center badge badge-lg badge-error w-[80px] gap-1 p-1 ${
+                summary.unpacked === 0 ? "badge-outline" : ""
+              }`}
+            >
+              <FaBoxOpen />
+              {/* <span className="hidden md:inline">Unpacked</span> */}
+              <span className="items-center  badge badge-sm bg-base-100 text-base-content">
+                {summary.unpacked}
+              </span>
+            </div>
 
-          {/* leave */}
-          {/* <div
+            {/* leave */}
+            {/* <div
             className={`badge badge-lg badge-warning gap-1 p-1 w-[80px] ${
               summary.leave === 0 ? "badge-outline" : ""
             }`}
@@ -511,8 +512,8 @@ export default function ListPage() {
             </span>
           </div> */}
 
-          {/* packed */}
-          {/* <div
+            {/* packed */}
+            {/* <div
             className={`badge badge-lg badge-success gap-1 p-1 w-[80px] ${
               summary.packed === 0 ? "badge-outline" : ""
             }`}
@@ -524,13 +525,14 @@ export default function ListPage() {
             </span>
           </div> */}
 
-          {/* wieght */}
-          {summary.hasWeight && (
-            <div className="badge badge-lg badge-success badge-outline gap-1 p-1 w-[60px]">
-              {/* <span className="hidden md:inline">packed weight</span> */}
-              {summary.packedWeightKg}kg
-            </div>
-          )}
+            {/* wieght */}
+            {summary.hasWeight && (
+              <div className="badge badge-lg badge-success badge-outline gap-1 p-1 w-[60px]">
+                {/* <span className="hidden md:inline">packed weight</span> */}
+                {summary.packedWeightKg}kg
+              </div>
+            )}
+          </div>
         </div>
 
         {/* sort display*/}
