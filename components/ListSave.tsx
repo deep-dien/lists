@@ -161,9 +161,7 @@ export function ListItems({
     const itemIds = items.map((item: ItemModel) => item.id);
     return [
       ...items,
-      ...itemsDefaults.filter(
-        (item: ItemModel) => !itemIds.includes(item.id),
-      ),
+      ...itemsDefaults.filter((item: ItemModel) => !itemIds.includes(item.id)),
     ];
   }, [items, itemsDefaults, canModifyDefaults]);
 
@@ -354,7 +352,7 @@ export function ListItems({
         {itemsFiltered.map(([group, subgroups]) => {
           return (
             <div key={group} className="gap-1">
-              <div className="divider p-0 m-0 font-bold flex">{group}</div>
+              <div className="divider p-0 my-1 font-bold flex">{group}</div>
               {subgroups.map(([subCategory, items]) => {
                 return (
                   <div key={subCategory ?? "all"} className="gap-1">
