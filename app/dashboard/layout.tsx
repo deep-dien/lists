@@ -3,11 +3,13 @@
 // packages
 import { signOut, useSession } from "next-auth/react";
 import { FaSignOutAlt } from "react-icons/fa";
-import { usePathname, useRouter, redirect } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect } from "react";
 
 // components
 import { Loading } from "@/components/Loading";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -42,67 +44,77 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   if (status === "loading") return <Loading />;
 
+  const onLists = pathname.startsWith("/dashboard/lists");
+  const onItems = pathname.startsWith("/dashboard/items");
+
+  // Three columns; the outer two are flex-1 so the nav stays centred.
+  //   [logo + wordmark] … [Lists | Items] … [theme] [sign out]
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden p-2 gap-1">
-      <header className="flex w-full flex-shrink-0 flex-row flex-wrap gap-1 items-center justify-between h-auto">
-        {/* left logo */}
-        <div className="flex h-[40px] items-center justify-center min-h-0">
-          <img
-            style={{
-              maxHeight: "100%",
-              maxWidth: "100%",
-              borderRadius: "50%",
-              backgroundColor: "white",
-              clipPath: "inset(0% 0% 0% 0%)",
-              objectFit: "contain",
-            }}
-            src="/noun-checklist-circle-1676792.png"
-            alt="Lists"
-            className="h-full object-contain bg-white"
-          />
+    <div className="flex h-dvh w-full flex-col overflow-hidden">
+      <header className="flex w-full shrink-0 items-center gap-2 px-2 py-1">
+        {/* left: brand, back to the lists */}
+        <div className="flex flex-1 min-w-0 items-center">
+          <Link
+            href="/dashboard/lists"
+            className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
+            title="All lists"
+          >
+            <img
+              src="/noun-checklist-circle-1676792.png"
+              alt=""
+              className="h-7 w-7 shrink-0 rounded-full bg-white object-contain"
+            />
+            <h1 className="hidden whitespace-nowrap text-xl font-bold leading-none sm:block">
+              Lists
+            </h1>
+          </Link>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-1">
-          <div
-            className={
-              pathname.startsWith("/dashboard/lists")
-                ? "p-2 btn btn-info btn-lg"
-                : "p-2 btn btn-info btn-lg btn-outline "
-            }
-            onClick={() => {
-              router.push(`/dashboard/lists`); // Fixed redirect
-            }}
+        {/* centre: nav */}
+        <div className="join shrink-0">
+          <Link
+            href="/dashboard/lists"
+            className={`btn btn-sm join-item ${onLists ? "btn-info" : "btn-ghost"}`}
+            aria-current={onLists ? "page" : undefined}
           >
             Lists
-          </div>
-          <div
-            className={
-              pathname.startsWith("/dashboard/items")
-                ? "p-2 btn btn-info btn-lg"
-                : "p-2 btn btn-info btn-lg btn-outline"
-            }
-            onClick={() => {
-              router.push(`/dashboard/items`); // Fixed redirect
-            }}
+          </Link>
+          <Link
+            href="/dashboard/items"
+            className={`btn btn-sm join-item ${onItems ? "btn-info" : "btn-ghost"}`}
+            aria-current={onItems ? "page" : undefined}
           >
             Items
-          </div>
+          </Link>
         </div>
 
-        {/* right signout */}
-        <div className="flex items-center">
-          <div
-            className="flex btn btn btn-error"
+        {/* right: theme, sign out */}
+        <div className="flex flex-1 min-w-0 items-center justify-end gap-1">
+          {session?.user?.name && (
+            <span
+              className="hidden truncate text-sm opacity-80 md:inline"
+              title={session.user.name}
+            >
+              {session.user.name}
+            </span>
+          )}
+          <ThemeToggle />
+          <button
+            type="button"
+            className="btn btn-error btn-sm"
             onClick={async () => {
               await signOut({ callbackUrl: "/" });
             }}
+            title="Sign out"
           >
             <FaSignOutAlt />
-          </div>
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
         </div>
       </header>
-      <div className="divider m-0 p-0"></div>
-      <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+      <main className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+        {children}
+      </main>
     </div>
   );
 }

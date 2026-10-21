@@ -1,12 +1,17 @@
-import { FaTimes } from "react-icons/fa";
-import { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
+import {
+  FaCheckSquare,
+  FaLayerGroup,
+  FaRegSquare,
+  FaSortAmountDown,
+  FaSortAmountUp,
+  FaTimes,
+} from "react-icons/fa";
+import { Dispatch, SetStateAction, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useData } from "@/queries";
-import { FaEdit } from "react-icons/fa";
 import { ItemSave } from "@/components/ItemSave";
 import { useSession } from "next-auth/react";
-import { useMutationListSave } from "@/mutators";
-import { FaShareAlt } from "react-icons/fa";
-import { FaLayerGroup, FaSortAmountDown, FaSortAmountUp } from "react-icons/fa";
+import { useMutationListDelete, useMutationListSave } from "@/mutators";
 import { Item as ItemModel } from "@/lib/domain/models/item";
 import { List as ListModel } from "@/lib/domain/models/list";
 
@@ -27,76 +32,48 @@ export type DraftList = Partial<Omit<ListModel, "items" | "isDefault">> & {
 };
 
 type SetSaveList = Dispatch<SetStateAction<DraftList>>;
-type SetInitialItem = Dispatch<SetStateAction<DraftItem | null>>;
 
+// The whole row toggles whether the item is on the list — no Add/Remove or
+// edit buttons. Items are edited on the Items page.
 export function Item({
   item,
   saveList,
   setSaveList,
-  setInitialItem,
 }: {
   item: ItemModel;
   saveList: DraftList;
   setSaveList: SetSaveList;
-  setInitialItem: SetInitialItem;
 }) {
-  const listItems = saveList.items;
-  const listItemIds = saveList.items.map((item) => item.itemId);
+  const added = saveList.items.some((listItem) => listItem.itemId === item.id);
+
+  const toggle = () => {
+    setSaveList((prev) => ({
+      ...prev,
+      items: added
+        ? prev.items.filter((listItem) => listItem.itemId !== item.id)
+        : [...prev.items, { itemId: item.id, status: "unpacked" }],
+    }));
+  };
 
   return (
-    <div className="justify-between flex flex-col w-full">
-      <div className="justify-between flex flex-row w-full gap-1">
-        <div className="flex-1">{item.name}</div>
-        {/* edit */}
-        <div
-          className="flex min-w-0  btn btn-info"
-          onClick={() => {
-            setInitialItem(item);
-          }}
-        >
-          <FaEdit />
-        </div>
-        {/* add/remove */}
-        {/* add */}
-        {!listItemIds.includes(item.id) && (
-          <div
-            className="flex min-w-0 w-[75px] btn btn btn-success"
-            onClick={() => {
-              setSaveList((prev) => {
-                return {
-                  ...prev,
-                  items: [
-                    ...prev.items,
-                    { itemId: item.id, status: "unpacked" },
-                  ],
-                };
-              });
-            }}
-          >
-            Add
-          </div>
-        )}
-        {/* remove */}
-        {listItemIds.includes(item.id) && (
-          <div
-            className="flex min-w-0 w-[75px] btn btn btn-warning"
-            onClick={() => {
-              setSaveList((prev) => {
-                return {
-                  ...prev,
-                  items: listItems.filter(
-                    (listItem) => listItem.itemId != item.id,
-                  ),
-                };
-              });
-            }}
-          >
-            Remove
-          </div>
-        )}
-      </div>
-      <div className="divider p-0 m-0"></div>
-    </div>
+    <button
+      type="button"
+      onClick={toggle}
+      aria-pressed={added}
+      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${
+        added ? "bg-success/10" : ""
+      }`}
+    >
+      {added ? (
+        <FaCheckSquare className="shrink-0 text-success" />
+      ) : (
+        <FaRegSquare className="shrink-0 opacity-40" />
+      )}
+      <span className="flex-1 min-w-0 truncate">{item.name}</span>
+      {!!item.weight && (
+        <span className="shrink-0 text-xs opacity-60">{item.weight}g</span>
+      )}
+    </button>
   );
 }
 
@@ -104,20 +81,16 @@ export function ItemsList({
   items,
   saveList,
   setSaveList,
-  setInitialItem,
 }: {
   items: ItemModel[];
   saveList: DraftList;
   setSaveList: SetSaveList;
-  setInitialItem: SetInitialItem;
 }) {
   if (items.length === 0) {
-    return (
-      <div className="p-1 items-center w-full h-full"> No items found</div>
-    );
+    return <div className="px-2 py-1 text-sm opacity-70">No items found</div>;
   }
   return (
-    <div className="items-center flex-col w-full h-full gap-1">
+    <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))]">
       {items.map((item) => {
         return (
           <Item
@@ -125,7 +98,6 @@ export function ItemsList({
             item={item}
             saveList={saveList}
             setSaveList={setSaveList}
-            setInitialItem={setInitialItem}
           />
         );
       })}
@@ -282,88 +254,82 @@ export function ListItems({
   // new item
   const [initialItem, setInitialItem] = useState<DraftItem | null>(null);
 
+  const addedCount = saveList.items.length;
+
   return (
-    <div className="flex h-full w-full min-h-0 flex-col gap-1">
+    <div className="flex h-full w-full min-h-0 flex-col gap-2">
       {/* header */}
-      <div className="flex w-full flex-row items-center justify-between flex-wrap gap-1">
-        <div className="flex flex-row justify-between gap-1 items-center">
-          {/* title  */}
-          <div className="flex font-bold"> Items</div>
-          {/* search  */}
-          <div className="flex flex-1">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="input flex-1"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          {/* create button */}
-          <div
-            className="btn btn-success btn"
-            onClick={() => setInitialItem({})}
-          >
-            Create
-          </div>
-        </div>
-        {/* sort row */}
-        <div className="gap-1 flex flex-row flex">
-          {/* category */}
-          <div
-            className={`flex btn btn-md ${
+      <div className="flex w-full flex-wrap items-center gap-2">
+        <span className="text-sm font-bold">
+          Items <span className="font-normal opacity-70">({addedCount} added)</span>
+        </span>
+        <input
+          type="search"
+          placeholder="Search..."
+          className="input input-sm flex-1 min-w-[8rem]"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {/* sort */}
+        <div className="join">
+          <button
+            type="button"
+            className={`btn btn-sm join-item ${
               sort?.mode === "category" ? "btn-active" : ""
             }`}
-            onClick={() =>
-              setSort((prev) => {
-                return { ...prev, mode: "category" };
-              })
-            }
+            onClick={() => setSort((prev) => ({ ...prev, mode: "category" }))}
+            title="Group by category"
           >
             <FaLayerGroup />
-            Category
-          </div>
-          {/* added */}
-          <div
-            className={`flex btn btn-md ${
+            <span className="hidden sm:inline">Category</span>
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm join-item ${
               sort?.mode === "added" ? "btn-active" : ""
             }`}
-            onClick={() => {
-              setSort((prev) => {
-                if (prev.mode === "added") {
-                  return { ...prev, ascending: !prev.ascending };
-                } else {
-                  return { ...prev, mode: "added" };
-                }
-              });
-            }}
+            onClick={() =>
+              setSort((prev) =>
+                prev.mode === "added"
+                  ? { ...prev, ascending: !prev.ascending }
+                  : { ...prev, mode: "added" },
+              )
+            }
+            title="Group by added"
           >
             {sort?.ascending ? <FaSortAmountDown /> : <FaSortAmountUp />}
-            Added
-          </div>
+            <span className="hidden sm:inline">Added</span>
+          </button>
         </div>
+        <button
+          type="button"
+          className="btn btn-success btn-sm"
+          onClick={() => setInitialItem({})}
+        >
+          New item
+        </button>
       </div>
 
-      {/* divider */}
-      <div className="divider p-0 m-0"></div>
-
       {/* items */}
-      <div className="overflow-y-auto w-full">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {itemsFiltered.map(([group, subgroups]) => {
           return (
-            <div key={group} className="gap-1">
-              <div className="divider p-0 my-1 font-bold flex">{group}</div>
+            <div key={group}>
+              <div className="sticky top-0 z-10 bg-base-100 border-b border-base-300/70 px-2 pt-2 pb-0.5 text-sm font-bold capitalize">
+                {group}
+              </div>
               {subgroups.map(([subCategory, items]) => {
                 return (
-                  <div key={subCategory ?? "all"} className="gap-1">
+                  <div key={subCategory ?? "all"}>
                     {subCategory && (
-                      <div className="divider p-0 m-0 flex">{subCategory}</div>
+                      <div className="px-2 pt-1 text-xs font-semibold uppercase opacity-60">
+                        {subCategory}
+                      </div>
                     )}
                     <ItemsList
                       items={items}
                       saveList={saveList}
                       setSaveList={setSaveList}
-                      setInitialItem={setInitialItem}
                     />
                   </div>
                 );
@@ -410,23 +376,42 @@ export function ListSave({
     setInitialList(null);
   };
 
+  // delete list — leave the list's page first, otherwise its query refetches
+  // a list that no longer exists
+  const router = useRouter();
+  const mutationListDelete = useMutationListDelete();
+  const handleDelete = function () {
+    if (!initialList.id) return;
+    if (!confirm(`Delete "${initialList.name}"?`)) return;
+    router.replace("/dashboard/lists");
+    mutationListDelete.mutateAsync({ listId: initialList.id });
+    setInitialList(null);
+  };
+
   return (
-    <dialog className="modal modal-open h-full overflow-hidden p-1 w-full">
-      <div className="modal-box flex-1 max-w-none w-[90%] h-[90%] flex flex-col gap-1">
+    <div className="modal modal-open" role="dialog" aria-modal="true">
+      <div className="modal-box flex w-11/12 max-w-5xl h-[90dvh] max-h-[90dvh] flex-col gap-2 p-0">
         {/* title */}
-        <div className="w-full flex-row justify-between flex items-center min-h-0">
-          <div className="font-bold">Save list</div>
-          <div className="btn btn" onClick={() => setInitialList(null)}>
-            <FaTimes />
+        <div className="flex items-center justify-between gap-2 border-b border-base-300 px-4 py-2">
+          <div className="font-bold">
+            {initialList.id ? "Edit list" : "New list"}
           </div>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setInitialList(null)}
+            aria-label="Close"
+          >
+            <FaTimes />
+          </button>
         </div>
-        <div className="flex-col flex flex-1 min-h-0">
-          <div className="w-full flex flex-row gap-x-1 items-center">
-            {/* name */}
-            <div className="flex flex-1">Name:</div>
+        <div className="flex min-h-0 flex-1 flex-col gap-2 px-4">
+          {/* name */}
+          <label className="flex w-full items-center gap-2">
+            <span className="text-sm">Name</span>
             <input
               type="text"
-              className="input input-bordered w-full"
+              className="input input-bordered flex-1"
               placeholder="e.g. Hiking overnight"
               defaultValue={initialList?.name}
               onChange={(e) => {
@@ -435,25 +420,20 @@ export function ListSave({
                 });
               }}
             />
-          </div>
-          <div className="divider p-0 m-0"></div>
+          </label>
           {/* items */}
-          <div className="w-full flex flex-row flex-1 overflow-y-auto">
+          <div className="flex min-h-0 flex-1">
             <ListItems saveList={saveList} setSaveList={setSaveList} />
           </div>
         </div>
-        <div className="divider p-0 m-0"></div>
-        <div className="flex flex-row items-center gap-1">
-          <div className="btn btn-success btn flex-1" onClick={handleSave}>
-            Save list
-          </div>
+        {/* footer */}
+        <div className="flex flex-wrap items-center gap-2 border-t border-base-300 px-4 py-2">
           {/* default */}
           {session?.user.canModifyDefaults && (
-            <div className="flex flex-row gap-1">
-              <div>Default</div>
+            <label className="flex items-center gap-1 text-sm">
               <input
                 type="checkbox"
-                className="checkbox"
+                className="checkbox checkbox-sm"
                 defaultChecked={Boolean(initialList?.isDefault)}
                 onChange={(e) => {
                   setSaveList((prev) => {
@@ -461,13 +441,35 @@ export function ListSave({
                   });
                 }}
               />
-            </div>
+              Default
+            </label>
           )}
-          <div className="btn btn flex-1" onClick={() => setInitialList(null)}>
+          {initialList.id && (
+            <button
+              type="button"
+              className="btn btn-outline btn-error btn-sm"
+              onClick={handleDelete}
+            >
+              Delete list
+            </button>
+          )}
+          <div className="flex-1" />
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setInitialList(null)}
+          >
             Cancel
-          </div>
+          </button>
+          <button
+            type="button"
+            className="btn btn-success btn-sm"
+            onClick={handleSave}
+          >
+            Save list
+          </button>
         </div>
       </div>
-    </dialog>
+    </div>
   );
 }

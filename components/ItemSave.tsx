@@ -2,7 +2,7 @@ import { FaTimes } from "react-icons/fa";
 import { Dispatch, SetStateAction, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Item } from "@/lib/domain/models/item";
-import { useMutationItemSave } from "@/mutators";
+import { useMutationItemDelete, useMutationItemSave } from "@/mutators";
 
 type DraftItem = Partial<Omit<Item, "weight" | "isDefault">> & {
   weight?: number | string;
@@ -35,17 +35,33 @@ export function ItemSave({
     setInitialItem(null);
   };
 
+  // delete item
+  const mutationItemDelete = useMutationItemDelete();
+  const handleDelete = function () {
+    if (!initialItem.id) return;
+    if (!confirm(`Delete "${initialItem.name}"?`)) return;
+    mutationItemDelete.mutateAsync({ itemId: initialItem.id });
+    setInitialItem(null);
+  };
+
   return (
-    <dialog className="modal modal-open">
-      <div className="modal-box w-11/12 max-w-3xl">
-        <div className="w-full flex-row justify-between flex items-center">
-          <div className="font-bold">Save item</div>
-          <div className="btn" onClick={() => setInitialItem(null)}>
-            <FaTimes />
+    <div className="modal modal-open" role="dialog" aria-modal="true">
+      <div className="modal-box w-11/12 max-w-3xl p-0">
+        <div className="flex items-center justify-between gap-2 border-b border-base-300 px-4 py-2">
+          <div className="font-bold">
+            {initialItem.id ? "Edit item" : "New item"}
           </div>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setInitialItem(null)}
+            aria-label="Close"
+          >
+            <FaTimes />
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 py-3">
           {/* Name */}
           <div className="">
             <div className="">Item name:</div>
@@ -119,6 +135,26 @@ export function ItemSave({
             />
           </div>
 
+          {/* base weight */}
+          <label className="flex items-center gap-2 md:col-span-2">
+            <input
+              type="checkbox"
+              className="checkbox checkbox-sm"
+              defaultChecked={initialItem?.isBase !== false}
+              onChange={(e) => {
+                setSaveItem((prev) => {
+                  return { ...prev, isBase: e.target.checked };
+                });
+              }}
+            />
+            <span>
+              Base weight
+              <span className="ml-1 text-sm opacity-60">
+                (untick for food, water, fuel and worn clothing)
+              </span>
+            </span>
+          </label>
+
           {/* default */}
           {session?.user.canModifyDefaults && (
             <div className="flex flex-row gap-1">
@@ -137,17 +173,33 @@ export function ItemSave({
           )}
         </div>
 
-        <div className="divider p-0 m-0"></div>
-
-        <div className="flex flex-row items-center gap-1">
-          <div className="btn btn-success btn flex-1" onClick={handleSave}>
-            Save Item
-          </div>
-          <div className="btn btn flex-1" onClick={() => setInitialItem(null)}>
+        <div className="flex flex-wrap items-center gap-2 border-t border-base-300 px-4 py-2">
+          {initialItem.id && (
+            <button
+              type="button"
+              className="btn btn-outline btn-error btn-sm"
+              onClick={handleDelete}
+            >
+              Delete item
+            </button>
+          )}
+          <div className="flex-1" />
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setInitialItem(null)}
+          >
             Cancel
-          </div>
+          </button>
+          <button
+            type="button"
+            className="btn btn-success btn-sm"
+            onClick={handleSave}
+          >
+            Save item
+          </button>
         </div>
       </div>
-    </dialog>
+    </div>
   );
 }

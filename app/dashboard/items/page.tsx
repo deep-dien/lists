@@ -1,17 +1,12 @@
 "use client";
 
 import { Loading } from "@/components/Loading";
-import { Item as ItemModel } from "@/lib/domain/models/item";
+import { Item as ItemModel, isBaseItem } from "@/lib/domain/models/item";
 import { useData } from "@/queries";
 import { Dispatch, SetStateAction, useState, useMemo } from "react";
-import { MdDelete } from "react-icons/md";
-import { FaEdit } from "react-icons/fa";
-
-import { redirect } from "next/navigation";
 
 import { ItemSave } from "@/components/ItemSave";
 import { useSession } from "next-auth/react";
-import { useMutationItemDelete } from "@/mutators";
 
 type DraftItem = Partial<Omit<ItemModel, "weight" | "isDefault">> & {
   weight?: number | string;
@@ -20,6 +15,7 @@ type DraftItem = Partial<Omit<ItemModel, "weight" | "isDefault">> & {
 
 type SetInitialItem = Dispatch<SetStateAction<DraftItem | null>>;
 
+// The whole row opens the edit form; delete lives in there.
 export function Item({
   item,
   setInitialItem,
@@ -27,62 +23,52 @@ export function Item({
   item: ItemModel;
   setInitialItem: SetInitialItem;
 }) {
-  // mutation
-  const mutateItemDelete = useMutationItemDelete();
-
   return (
-    <div className="justify-between flex flex-col w-full p-1 items-center">
-      <div className="justify-between flex flex-row w-full gap-1 items-center">
-        <div className="flex-1">{item.name}</div>
-        {item?.isDefault ? <div className="badge">Default</div> : null}
-        <div
-          className="flex min-w-0 btn btn-info"
-          onClick={() => {
-            setInitialItem(item);
-          }}
-        >
-          <FaEdit />
-        </div>
-        <div
-          className="flex min-w-0 btn btn-error"
-          onClick={() => {
-            mutateItemDelete.mutateAsync({ itemId: item.id });
-          }}
-        >
-          <MdDelete />
-        </div>
-      </div>
-      <div className="divider p-0 m-0"></div>
-    </div>
+    <button
+      type="button"
+      onClick={() => setInitialItem(item)}
+      title="Edit item"
+      className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+    >
+      <span className="flex-1 min-w-0 truncate">{item.name}</span>
+      {item?.isDefault ? (
+        <span className="badge badge-neutral badge-sm shrink-0">Default</span>
+      ) : null}
+      {!isBaseItem(item) && (
+        <span className="badge badge-ghost badge-sm shrink-0">not base</span>
+      )}
+      {!!item.weight && (
+        <span className="shrink-0 text-sm opacity-60">{item.weight}g</span>
+      )}
+    </button>
   );
 }
 
-export function ItemsList({
+// One card per category, laid out in as many columns as fit.
+export function ItemsCategory({
+  category,
   items,
   setInitialItem,
 }: {
+  category: string;
   items: ItemModel[];
   setInitialItem: SetInitialItem;
 }) {
-  if (items.length === 0) {
-    return (
-      <div className="p-1 items-center w-full h-full"> No items found</div>
-    );
-  }
-
   return (
-    <div className="p-1 items-center w-full h-full">
-      <div className="w-full">
-        {items.map((item) => {
-          return (
-            <Item
-              key={item.id}
-              item={item}
-              setInitialItem={setInitialItem}
-            ></Item>
-          );
-        })}
+    <div className="mb-2 break-inside-avoid overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
+      <div className="flex items-baseline justify-between gap-2 border-b border-base-300/60 px-3 pb-1 pt-1.5">
+        <span className="text-sm font-bold capitalize">{category}</span>
+        <span className="text-xs opacity-70">{items.length}</span>
       </div>
+      {items.length === 0 ? (
+        <div className="px-3 py-2 text-sm opacity-70">No items found</div>
+      ) : (
+        <div className="divide-y divide-base-300/70">
+          {items.map((item) => (
+            <Item key={item.id} item={item} setInitialItem={setInitialItem} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -167,50 +153,46 @@ export default function Items() {
   if (isLoading) return <Loading />;
 
   return (
-    <div className="flex h-full w-full min-h-0 flex-col gap-1">
-      {/* header */}
-      <div className="flex flex-shrink-0 flex-row items-center justify-between gap-1">
-        {/* title  */}
-        <div className="flex font-bold"> Items</div>
-        {/* search  */}
-        <div className="flex-1 flex">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="input flex-1"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
+      {/* header bar */}
+      <div className="flex shrink-0 items-center gap-2 bg-base-200 border-b border-base-content/15 px-3 py-2 shadow-sm">
+        <h2 className="text-sm font-bold">Items</h2>
+        <input
+          type="search"
+          placeholder="Search..."
+          className="input input-sm flex-1 min-w-0"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button
+          type="button"
+          className="btn btn-success btn-sm"
+          onClick={() => setInitialItem({})}
+        >
+          Create new
+        </button>
       </div>
 
-      {/* divider */}
-      <div className="divider p-0 m-0"></div>
-
       {/* items */}
-      <div className="overflow-y-auto w-full">
-        {/* {!itemsFiltered?.length && <div>No items found</div>} */}
-        {itemsFiltered.map(([category, itemsCategory]) => {
-          return (
-            <div key={category} className="gap-1">
-              <div className="font-bold flex divider p-0 m-0">{category}</div>
-              <ItemsList
+      <div className="min-h-0 flex-1 overflow-y-auto bg-base-200/40 p-2">
+        {itemsFiltered.length === 0 ? (
+          <div className="px-4 py-12 text-center opacity-70">
+            No items found
+          </div>
+        ) : (
+          <div className="columns-1 gap-2 sm:columns-[18rem]">
+            {itemsFiltered.map(([category, itemsCategory]) => (
+              <ItemsCategory
+                key={category}
+                category={category}
                 items={itemsCategory}
                 setInitialItem={setInitialItem}
               />
-            </div>
-          );
-        })}
-        <div className="w-full h-[50px]"></div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* create button */}
-      <div
-        className="btn btn-success btn-lg fixed bottom-2 right-2 z-50"
-        onClick={() => setInitialItem({})}
-      >
-        Create
-      </div>
       {/* item save modal */}
       {!!initialItem && (
         <ItemSave

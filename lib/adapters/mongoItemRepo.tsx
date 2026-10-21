@@ -14,6 +14,7 @@ export interface ItemDoc {
   weight?: unknown;
   category?: string;
   isDefault?: boolean;
+  isBase?: boolean;
   clonedId?: string;
 }
 
@@ -37,6 +38,7 @@ class MongoItemRepo implements ItemRepo {
       weight: parseItemWeight(doc.weight),
       category: doc.category,
       isDefault: doc.isDefault,
+      isBase: doc.isBase,
       clonedId: doc?.clonedId,
     });
   }
@@ -79,6 +81,7 @@ class MongoItemRepo implements ItemRepo {
         weight: item.weight,
         category: item.category,
         isDefault: item.isDefault,
+        isBase: item.isBase,
         clonedId: item.clonedId,
       };
       const result = await collection.insertOne(doc);

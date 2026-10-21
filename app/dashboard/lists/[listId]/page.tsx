@@ -1,27 +1,29 @@
 "use client";
 
 import { Loading } from "@/components/Loading";
-import { Item as ItemModel, parseItemWeight } from "@/lib/domain/models/item";
+import {
+  Item as ItemModel,
+  isBaseItem,
+  parseItemWeight,
+} from "@/lib/domain/models/item";
 import {
   ListItem,
   ListItemStatus,
   STATUS_SORT_ORDER,
 } from "@/lib/domain/models/list";
-import { Copy } from "@/components/Copy";
+import { Share } from "@/components/Share";
 import { useData } from "@/queries";
 import {
   useMutationListClone,
   useMutationListItemSave,
   useMutationListSave,
 } from "@/mutators";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ListSave, DraftList } from "@/components/ListSave";
 import {
-  FaArrowLeft,
   FaBoxOpen,
   FaLayerGroup,
   FaPlaneDeparture,
@@ -29,11 +31,8 @@ import {
   FaSortAmountDown,
   FaSortAmountUp,
   FaPlus,
-  FaMinus,
-  FaEdit,
 } from "react-icons/fa";
 import { RiResetLeftFill } from "react-icons/ri";
-import { IoReturnDownBack, IoReturnDownForward } from "react-icons/io5";
 
 import { str_sanitize } from "@/utilities";
 
@@ -44,7 +43,13 @@ type ListDisplayItem = {
   name: string;
   category?: string;
   weight?: number;
+  isBase: boolean;
 };
+
+// grams → "1.23 kg"
+function kg(grams: number): string {
+  return `${(grams / 1000).toFixed(2)} kg`;
+}
 
 function compareByName(a: ListDisplayItem, b: ListDisplayItem): number {
   return a.name.localeCompare(b.name);
@@ -71,197 +76,180 @@ function compareByCategory(a: ListDisplayItem, b: ListDisplayItem): number {
   return compareByName(a, b);
 }
 
-function statusClass(status: ListItemStatus) {
-  switch (status) {
-    case "leave":
-      return "border-warning bg-warning/20";
-    case "packed":
-      return "border-success bg-success/20";
-    default:
-      return "border-error bg-error/20";
-  }
-}
+const STATUS_ICON: Record<ListItemStatus, React.ReactNode> = {
+  unpacked: <FaBoxOpen className="text-error" />,
+  leave: <FaPlaneDeparture className="text-warning" />,
+  packed: <FaSuitcase className="text-success" />,
+};
 
-type StatusChangeHandler = (
-  itemId: string,
-  currentStatus: ListItemStatus,
-  nextStatus: ListItemStatus,
-) => void;
+type ItemChangeHandler = (item: {
+  itemId: string;
+  status?: ListItemStatus;
+  quantity?: number;
+}) => void;
 
-type QuantityChangeHandler = (
-  itemId: string,
-  currentQuantity: number,
-  nextQuantity: number,
-) => void;
-
+// Pack (or tapping anywhere on the row) packs one. When the last one is
+// packed the item is packed; packing a packed item puts it back to unpacked.
+// Leave and Pack are full-size buttons for thumbs; +1 is the rare one.
 function Item({
   item,
   handleItemChange,
 }: {
   item: ListDisplayItem;
-  handleItemChange: any;
+  handleItemChange: ItemChangeHandler;
 }) {
+  const done = item.status !== "unpacked";
+
+  const packOne = () => {
+    if (item.status === "packed" || item.status === "leave") {
+      handleItemChange({
+        itemId: item.itemId,
+        quantity: Math.max(1, item.quantity),
+        status: "unpacked",
+      });
+      return;
+    }
+    const nextQuantity = Math.max(0, item.quantity - 1);
+    handleItemChange({
+      itemId: item.itemId,
+      status: nextQuantity === 0 ? "packed" : "unpacked",
+      quantity: nextQuantity,
+    });
+  };
+
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+
   return (
     <div
-      className={`
-        rounded-box
-        border border-base-300
-        p-2
-        gap-1
-        flex
-        flex-col
-        ${statusClass(item.status)}
-      `}
+      role="button"
+      tabIndex={0}
+      onClick={packOne}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          packOne();
+        }
+      }}
+      title={done ? "Mark as unpacked" : "Pack one"}
+      className="flex w-full items-center gap-2 px-3 py-1.5 text-left cursor-pointer select-none transition-colors hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
     >
-      {/* name, weight, quantity */}
-      <div className="flex items-center flex-row justify-between gap-1">
-        <div className="font-medium flex">{item.name}</div>
-        {!!item.weight && (
-          <div className="badge badge-outline">{item.weight}g</div>
-        )}
-        <div className="flex min-w-[275px] max-w-[275px] flex-row gap-1 items-center">
-          <div className="divider divider-horizontal p-0 m-0"></div>
-          <div className="flex">Unpacked quantity </div>
-          <div
-            className="btn btn-xs"
-            onClick={() => {
-              // decrease quanity by 1
-              const nextQuantity = Math.max(0, item.quantity - 1);
-              handleItemChange({
-                itemId: item.itemId,
-                quantity: nextQuantity,
-                status: nextQuantity === 0 ? "packed" : item.status,
-              });
-            }}
-          >
-            <FaMinus />
-          </div>
-          <div className="badge badge-xl w-[35px] items-center">
-            {item.quantity}
-          </div>
-          <div
-            className="btn btn-xs"
-            onClick={() => {
-              // increase quantity by 1, set as unpacked
-              handleItemChange({
-                itemId: item.itemId,
-                quantity: item.quantity + 1,
-                status: "unpacked",
-              });
-            }}
-          >
-            <FaPlus />
-          </div>
-        </div>
-      </div>
-
-      {/* buttons */}
-      <div className="flex gap-2">
-        <button
-          className={`btn btn-md flex-1 btn-warning ${
-            item.status === "leave" ? "" : "btn-outline"
-          }`}
-          onClick={() => {
-            const newStatus = item.status === "leave" ? "unpacked" : "leave";
-            handleItemChange({
-              itemId: item.itemId,
-              status: newStatus,
-            });
-          }}
+      <span className="shrink-0">{STATUS_ICON[item.status]}</span>
+      <span
+        className={`flex-1 min-w-0 truncate ${
+          done ? "line-through opacity-50" : ""
+        }`}
+      >
+        {item.name}
+      </span>
+      {!!item.weight && (
+        // non-base weight (food, water, worn) in italics
+        <span
+          className={`shrink-0 text-xs opacity-60 ${item.isBase ? "" : "italic"}`}
+          title={item.isBase ? "Base weight" : "Not base weight"}
         >
-          <FaPlaneDeparture />
-          Leave
-        </button>
-
-        <button
-          className={`btn btn-md flex-1 btn-success ${
-            item.status === "packed" ? "" : "btn-outline"
-          }`}
-          onClick={() => {
-            // if quantity is 0, and click packed, set to unpacked, quantity 1
-            if (item.quantity === 0 && item.status === "packed") {
-              handleItemChange({
-                itemId: item.itemId,
-                quantity: 1,
-                status: "unpacked",
-              });
-              return;
-            }
-            // else get new quantity
-            // if zero, set as packed
-            const nextQuantity = Math.max(0, item.quantity - 1);
-            handleItemChange({
-              itemId: item.itemId,
-              status: nextQuantity === 0 ? "packed" : "unpacked",
-              quantity: nextQuantity,
-            });
-          }}
-        >
-          <FaSuitcase />
-          Packed
-        </button>
-      </div>
+          {item.weight}g
+        </span>
+      )}
+      {item.status === "unpacked" && item.quantity > 1 && (
+        <span className="badge badge-sm badge-error shrink-0">
+          ×{item.quantity}
+        </span>
+      )}
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm btn-square shrink-0 opacity-50"
+        onClick={(e) => {
+          stop(e);
+          handleItemChange({
+            itemId: item.itemId,
+            quantity: (item.status === "unpacked" ? item.quantity : 0) + 1,
+            status: "unpacked",
+          });
+        }}
+        onKeyDown={stop}
+        title="One more to pack"
+        aria-label="One more to pack"
+      >
+        <FaPlus />
+      </button>
+      {/* leave and pack — big enough to hit with a thumb */}
+      <button
+        type="button"
+        className={`btn btn-warning h-10 min-h-10 w-12 shrink-0 px-0 text-lg ${
+          item.status === "leave" ? "" : "btn-outline"
+        }`}
+        onClick={(e) => {
+          stop(e);
+          handleItemChange({
+            itemId: item.itemId,
+            status: item.status === "leave" ? "unpacked" : "leave",
+          });
+        }}
+        onKeyDown={stop}
+        title={item.status === "leave" ? "Take it after all" : "Leave behind"}
+        aria-label={
+          item.status === "leave" ? "Take it after all" : "Leave behind"
+        }
+        aria-pressed={item.status === "leave"}
+      >
+        <FaPlaneDeparture />
+      </button>
+      <button
+        type="button"
+        className={`btn btn-success h-10 min-h-10 w-12 shrink-0 px-0 text-lg ${
+          item.status === "packed" ? "" : "btn-outline"
+        }`}
+        onClick={(e) => {
+          stop(e);
+          packOne();
+        }}
+        onKeyDown={stop}
+        title={item.status === "packed" ? "Mark as unpacked" : "Pack one"}
+        aria-label={item.status === "packed" ? "Mark as unpacked" : "Pack one"}
+        aria-pressed={item.status === "packed"}
+      >
+        <FaSuitcase />
+      </button>
     </div>
   );
 }
 
 export function ListItemsNil() {
-  return <div className="p-1 items-center w-full h-full"> No items found</div>;
+  return <div className="px-4 py-12 text-center opacity-70">No items found</div>;
 }
 
 type ItemsGroup = [string | undefined, ListDisplayItem[]];
 
-export function ListItemsSmall({
+// One card per group, in as many columns as fit the width.
+export function ListItemsGroups({
   itemsGrouped,
   handleItemChange,
 }: {
   itemsGrouped: ItemsGroup[];
-  handleItemChange: any;
+  handleItemChange: ItemChangeHandler;
 }) {
   return (
-    <div className="flex flex-col gap-3 md:hidden">
+    <div className="columns-1 gap-2 sm:columns-[18rem]">
       {itemsGrouped.map(([group, itemsGroup]) => {
-        return (
-          <div key={group}>
-            <div className="font-bold divider p-1 m-1 capitalize">{group}</div>
-            <div className="flex flex-col gap-1">
-              {itemsGroup.map((item) => {
-                return (
-                  <Item
-                    key={item.itemId}
-                    item={item}
-                    handleItemChange={handleItemChange}
-                  />
-                );
-              })}
-            </div>
-            <div className="divider p-0 m-0"></div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-export function ListItemsLarge({
-  itemsGrouped,
-  handleItemChange,
-}: {
-  itemsGrouped: ItemsGroup[];
-  handleItemChange: any;
-}) {
-  return (
-    <div className="hidden md:flex w-full h-full flex-row gap-1">
-      {itemsGrouped.map(([group, itemsGrouped]) => {
-        if (!itemsGrouped?.length) return null;
+        if (!itemsGroup?.length) return null;
+        const left = itemsGroup.filter((i) => i.status === "unpacked").length;
         return (
           <div
-            key={group}
-            className="flex flex-shrink-0 min-h-0 h-full w-fit flex-col gap-1"
+            key={group ?? "uncategorized"}
+            className="mb-2 break-inside-avoid overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm"
           >
-            <div className="font-bold capitalize">{group}</div>
-            <div className="flex flex-col gap-1">
-              {itemsGrouped.map((item) => (
+            <div className="flex items-baseline justify-between gap-2 border-b border-base-300/60 px-3 pb-1 pt-1.5">
+              <span className="text-sm font-bold capitalize">
+                {group || "uncategorized"}
+              </span>
+              <span
+                className={`text-xs ${left === 0 ? "text-success" : "opacity-70"}`}
+              >
+                {left === 0 ? "done" : `${left} left`}
+              </span>
+            </div>
+            <div className="divide-y divide-base-300/70">
+              {itemsGroup.map((item) => (
                 <Item
                   key={item.itemId}
                   item={item}
@@ -282,9 +270,6 @@ export default function ListPage() {
 
   // session
   const { data: session } = useSession();
-
-  // query
-  const queryClient = useQueryClient();
 
   // sort mode
   const [sort, setSort] = useState({ mode: "category", ascending: true });
@@ -349,6 +334,7 @@ export default function ListPage() {
           name: item.name ?? "Unnamed item",
           category: item.category,
           weight: parseItemWeight(item.weight),
+          isBase: isBaseItem(item),
         };
       })
       .filter(
@@ -364,16 +350,16 @@ export default function ListPage() {
       leave: 0,
       packed: 0,
     };
-    let packedWeightG = 0;
-    let hasWeight = false;
+    let packedG = 0;
+    let packedBaseG = 0;
     listItems.forEach((item) => {
       counts[item.status] += 1;
-      if (item.weight) hasWeight = true;
       if (item.status === "packed") {
-        packedWeightG += item.weight ?? 0;
+        packedG += item.weight ?? 0;
+        if (item.isBase) packedBaseG += item.weight ?? 0;
       }
     });
-    return { ...counts, packedWeightKg: packedWeightG / 1000, hasWeight };
+    return { ...counts, packedG, packedBaseG };
   }, [listItems]);
 
   const categories: (string | undefined)[] = [
@@ -429,13 +415,13 @@ export default function ListPage() {
         const itemsFilter = itemsGroup.filter(
           (item) =>
             (item.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-            item.category.toLowerCase().includes(search.toLowerCase()) ||
-            (search.includes("default") && item?.isDefault),
+            (item.category ?? "").toLowerCase().includes(search.toLowerCase()),
         );
         return [group, itemsFilter];
       })
       .filter(
-        ([group, itemsGroup]) => !!itemsGroup?.length || group.includes(search),
+        ([group, itemsGroup]) =>
+          !!itemsGroup?.length || (group ?? "").includes(search),
       );
   }, [itemsGrouped, search]);
 
@@ -476,161 +462,122 @@ export default function ListPage() {
   if (list?.isDefault && !session?.user?.canModifyDefaults) return <Loading />;
   if (mutationListClone.isPending) return <Loading />;
 
+  const openEdit = () => setInitialList(list);
+
   return (
-    <div className="flex h-full w-full min-h-0 flex flex-col">
-      {/* header */}
-      <div className="flex w-full flex-shrink-0 flex-row flex-wrap justify-between gap-1 p-0 items-center">
-        {/* title */}
-        <div className="flex flex-col">
-          <div className="flex font-bold items-center order-1">{list.name}</div>
-
-          {/* summary badges */}
-          <div className="flex flex-row flex-wrap items-center gap-1 order-2">
-            {/* unpacked */}
-            <div
-              className={`items-center badge badge-lg badge-error w-[80px] gap-1 p-1 ${
-                summary.unpacked === 0 ? "badge-outline" : ""
-              }`}
+    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
+      {/* header bar */}
+      <div className="flex shrink-0 flex-col gap-1 bg-base-200 border-b border-base-content/15 px-3 py-2 shadow-sm">
+        {/* breadcrumb: Lists goes back, the name opens the edit form */}
+        <div className="flex items-center gap-2">
+          <div className="flex flex-1 min-w-0 items-baseline gap-1.5 text-lg font-bold">
+            <Link
+              href="/dashboard/lists"
+              className="shrink-0 opacity-60 hover:opacity-100 hover:underline"
+              title="Back to all lists"
             >
-              <FaBoxOpen />
-              {/* <span className="hidden md:inline">Unpacked</span> */}
-              <span className="items-center  badge badge-sm bg-base-100 text-base-content">
-                {summary.unpacked}
-              </span>
-            </div>
-
-            {/* leave */}
-            {/* <div
-            className={`badge badge-lg badge-warning gap-1 p-1 w-[80px] ${
-              summary.leave === 0 ? "badge-outline" : ""
-            }`}
-          >
-            <FaPlaneDeparture />
-            <span className="hidden md:inline">Leave</span>
-            <span className="badge badge-sm bg-base-100 text-base-content">
-              {summary.leave}
+              Lists
+            </Link>
+            <span className="shrink-0 opacity-40" aria-hidden="true">
+              &rsaquo;
             </span>
-          </div> */}
-
-            {/* packed */}
-            {/* <div
-            className={`badge badge-lg badge-success gap-1 p-1 w-[80px] ${
-              summary.packed === 0 ? "badge-outline" : ""
-            }`}
-          >
-            <FaSuitcase />
-            <span className="hidden md:inline">Packed</span>
-            <span className="badge badge-sm bg-base-100 text-base-content">
-              {summary.packed}
-            </span>
-          </div> */}
-
-            {/* wieght */}
-            {summary.hasWeight && (
-              <div className="badge badge-lg badge-success badge-outline gap-1 p-1 w-[60px]">
-                {/* <span className="hidden md:inline">packed weight</span> */}
-                {summary.packedWeightKg}kg
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* sort display*/}
-        <div className="flex flex-row flex-wrap gap-1 order-4 md:order-3">
-          {/* category */}
-          <div
-            className={`flex btn btn-md ${
-              sort?.mode === "category" ? "btn-active" : ""
-            }`}
-            onClick={() =>
-              setSort((prev) => {
-                return {
-                  ...prev,
-                  mode: "category",
-                };
-              })
-            }
-          >
-            <FaLayerGroup />
-            <span className="hidden md:inline">Category</span>
-          </div>
-          {/* status */}
-          <div
-            className={`flex btn btn-md ${
-              sort?.mode === "status" ? "btn-active" : ""
-            }`}
-            onClick={() =>
-              setSort((prev) => {
-                if (prev.mode === "status") {
-                  return { ...prev, ascending: !prev.ascending };
-                } else {
-                  return { ...prev, mode: "status" };
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={openEdit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openEdit();
                 }
-              })
-            }
+              }}
+              title="Edit list"
+              className="truncate cursor-pointer hover:underline decoration-dotted underline-offset-4"
+            >
+              {list.name}
+            </span>
+          </div>
+          <Share listId={list.id} name={list.name} />
+        </div>
+
+        {/* summary, search, grouping, reset */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`text-sm ${summary.unpacked === 0 ? "text-success" : "opacity-70"}`}
           >
-            {sort?.ascending ? <FaSortAmountUp /> : <FaSortAmountDown />}
-            <span className="hidden md:inline">Status</span>
+            {summary.unpacked === 0
+              ? "All packed"
+              : `${summary.unpacked} left to pack`}
+          </span>
+          {summary.packedG > 0 && (
+            <span className="text-sm whitespace-nowrap">
+              <span className="font-bold">{kg(summary.packedBaseG)}</span>
+              <span className="opacity-70"> base</span>
+              <span className="opacity-40"> · </span>
+              <span className="font-bold">{kg(summary.packedG)}</span>
+              <span className="opacity-70"> packed</span>
+            </span>
+          )}
+          <input
+            type="search"
+            placeholder="Search..."
+            className="input input-sm flex-1 min-w-[8rem]"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="join">
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${
+                sort?.mode === "category" ? "btn-active" : ""
+              }`}
+              onClick={() => setSort((prev) => ({ ...prev, mode: "category" }))}
+              title="Group by category"
+            >
+              <FaLayerGroup />
+              <span className="hidden sm:inline">Category</span>
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${
+                sort?.mode === "status" ? "btn-active" : ""
+              }`}
+              onClick={() =>
+                setSort((prev) =>
+                  prev.mode === "status"
+                    ? { ...prev, ascending: !prev.ascending }
+                    : { ...prev, mode: "status" },
+                )
+              }
+              title="Group by status"
+            >
+              {sort?.ascending ? <FaSortAmountUp /> : <FaSortAmountDown />}
+              <span className="hidden sm:inline">Status</span>
+            </button>
           </div>
-        </div>
-
-        {/* search */}
-        <div className="flex flex-shrink-0 flex-row items-center justify-between gap-1 order-last md:order-4">
-          {/* search  */}
-          <div className="flex-1 flex">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="input flex-1"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* share, reset, edit, back */}
-        <div className="flex flex-row gap-1 order-3 md:order-5">
-          {/* share */}
-          <Copy endpoint={`/dashboard/lists/${list.id}`} />
-          {/* reset */}
-          <div className="btn btn-md btn-warning" onClick={resetStatus}>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={() => {
+              if (confirm("Mark everything as unpacked?")) resetStatus();
+            }}
+            title="Unpack everything"
+          >
             <RiResetLeftFill />
-          </div>
-          {/* edit  */}
-          <div
-            className="btn btn-md btn-info"
-            onClick={() => setInitialList(list)}
-          >
-            <FaEdit />
-          </div>
-          {/* back */}
-          <Link href="/dashboard/lists" className="btn btn-md">
-            <IoReturnDownBack />
-          </Link>
+            <span className="hidden sm:inline">Reset</span>
+          </button>
         </div>
       </div>
 
-      {/* divider */}
-      <div className="divider m-0 m-0"></div>
-
       {/* list items */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-base-200/40 p-2">
         {itemsFiltered.length === 0 ? (
           <ListItemsNil />
         ) : (
-          <>
-            {/* one column, small screen only */}
-            <ListItemsSmall
-              itemsGrouped={itemsFiltered}
-              handleItemChange={handleItemChange}
-            />
-
-            {/* multiple columns, large screen only */}
-            <ListItemsLarge
-              itemsGrouped={itemsFiltered}
-              handleItemChange={handleItemChange}
-            />
-          </>
+          <ListItemsGroups
+            itemsGrouped={itemsFiltered}
+            handleItemChange={handleItemChange}
+          />
         )}
       </div>
 

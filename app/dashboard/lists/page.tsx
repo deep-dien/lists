@@ -3,16 +3,12 @@
 import { Loading } from "@/components/Loading";
 import { List as ListModel } from "@/lib/domain/models/list";
 import { useData, prefetchData } from "@/queries";
-import { useMutationListClone, useMutationListDelete } from "@/mutators";
-import { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
-import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
-import { FaEdit } from "react-icons/fa";
-import { MdDelete } from "react-icons/md";
-import { IoReturnDownBack, IoReturnDownForward } from "react-icons/io5";
+import { useMutationListClone } from "@/mutators";
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { Copy } from "@/components/Copy";
+import { Share } from "@/components/Share";
 import { ListSave } from "@/components/ListSave";
 import { useSession } from "next-auth/react";
 
@@ -27,83 +23,81 @@ type DraftList = Partial<Omit<ListModel, "items" | "isDefault">> & {
   isDefault?: boolean | string;
 };
 
-type SetInitialList = Dispatch<SetStateAction<DraftList | null>>;
+// The whole card opens the list — same affordance as Mat-Trix's trip cards.
+// Share is the one thing on the card that isn't "open the list"; editing and
+// deleting live behind the list name on the list page.
+export function ListCard({ list }: { list: ListModel }) {
+  const router = useRouter();
+  const open = () => router.push(`/dashboard/lists/${list.id}`);
 
-export function ListRow({
-  list,
-  setInitialList,
-}: {
-  list: ListModel;
-  setInitialList: SetInitialList;
-}) {
-  const queryClient = useQueryClient();
-  const mutationListDelete = useMutationListDelete();
+  const total = list.items?.length ?? 0;
+  // "leave" items are dealt with too — they just aren't going
+  const packed = (list.items ?? []).filter(
+    (item) => item.status === "packed" || item.status === "leave",
+  ).length;
+  const done = total > 0 && packed === total;
 
   return (
-    <div className="justify-between flex flex-col w-full items-center">
-      <div className="justify-between flex flex-row w-full items-center gap-1">
-        {/* title */}
-        <div className="flex-1">{list.name}</div>
-        {list?.isDefault ? <div className="badge">D</div> : null}
-        {/* copy */}
-        <Copy endpoint={`/dashboard/lists/${list.id}`} />
-        {/* edit */}
-        <div
-          className="flex min-w-0 btn btn-info btn-md"
-          onClick={() => {
-            setInitialList(list);
-          }}
-        >
-          <FaEdit />
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={open}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          open();
+        }
+      }}
+      title="Open list"
+      className="w-full overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm cursor-pointer transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+    >
+      <div className="flex items-center gap-3 px-3 py-2 sm:px-4 transition-colors hover:bg-base-300/40">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-lg font-bold">{list.name}</span>
+            {list?.isDefault ? (
+              <span className="badge badge-neutral badge-sm shrink-0">
+                Default
+              </span>
+            ) : null}
+          </div>
+          {/* nothing packed yet — just the name */}
+          {packed > 0 && (
+            <div className={`text-sm ${done ? "text-success" : "opacity-70"}`}>
+              {done
+                ? `All ${total} packed`
+                : `${total - packed} of ${total} left to pack`}
+            </div>
+          )}
         </div>
-        {/* delete */}
-        <div
-          className="flex min-w-0 btn btn-error btn-md"
-          onClick={() => {
-            mutationListDelete.mutateAsync({ listId: list.id });
-          }}
-        >
-          <MdDelete />
-        </div>
-        {/* go to */}
-        <Link
-          href={`/dashboard/lists/${list.id}`}
-          prefetch={true}
-          className="flex min-w-0 btn btn-success btn-md"
-        >
-          <IoReturnDownForward />
-        </Link>
+        <Share listId={list.id} name={list.name} />
       </div>
-      <div className="divider p-0 m-0"></div>
+      {/* packing progress */}
+      {packed > 0 && (
+        <div className="h-1 w-full bg-base-200">
+          <div
+            className={`h-full ${done ? "bg-success" : "bg-info"}`}
+            style={{ width: `${(packed / total) * 100}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 }
 
-export function ListList({
-  lists,
-  setInitialList,
-}: {
-  lists: ListModel[];
-  setInitialList: SetInitialList;
-}) {
+export function ListList({ lists }: { lists: ListModel[] }) {
   if (lists.length === 0) {
     return (
-      <div className="p-1 items-center w-full h-full"> No lists found</div>
+      <div className="px-4 py-12 text-center opacity-70">
+        No lists found. Create one, or seed from a default above.
+      </div>
     );
   }
   return (
-    <div className="p-1 items-center w-full h-full">
-      <div className="w-full">
-        {lists.map((list) => {
-          return (
-            <ListRow
-              key={list.id}
-              list={list}
-              setInitialList={setInitialList}
-            ></ListRow>
-          );
-        })}
-      </div>
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(20rem,1fr))]">
+      {lists.map((list) => (
+        <ListCard key={list.id} list={list} />
+      ))}
     </div>
   );
 }
@@ -114,7 +108,8 @@ export function ListDefault({ list }: { list: ListModel }) {
   return (
     <div
       key={list.id}
-      className="flex btn btn-outline"
+      className="btn btn-outline btn-sm"
+      title="Add a copy of this list"
       onClick={() => {
         mutationListClone.mutateAsync({ list });
       }}
@@ -190,49 +185,39 @@ export default function Lists() {
   if (status === "loading") return <Loading />;
 
   return (
-    <div className="flex h-full w-full min-h-0 flex-col">
-      {/* header */}
-      <div className="flex flex-shrink-0 flex-col items-center justify-between gap-1">
-        <div className="flex flex-shrink-0 flex-row w-full items-center justify-between gap-1">
-          {/* title  */}
-          <div className="flex font-bold"> Lists</div>
-          {/* search  */}
-          <div className="flex flex-1">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="input flex-1"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
+      {/* header bar */}
+      <div className="flex shrink-0 flex-col gap-2 bg-base-200 border-b border-base-content/15 px-3 py-2 shadow-sm">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-bold">Lists</h2>
+          <input
+            type="search"
+            placeholder="Search..."
+            className="input input-sm flex-1 min-w-0"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-success btn-sm"
+            onClick={() => setInitialList({ items: [] })}
+          >
+            Create new
+          </button>
         </div>
         {/* defaults */}
         {!!listsDefaults?.length && (
-          <div className="flex flex-row flex-wrap flex-shrink-0 items-center w-full  gap-1">
-            <div className="flex">Seed from defaults:</div>
-            <div className="flex flex-wrap gap-1">
-              {listsDefaults.map((list: ListModel) => {
-                return <ListDefault key={list.id} list={list} />;
-              })}
-            </div>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-sm opacity-70">Seed from defaults:</span>
+            {listsDefaults.map((list: ListModel) => {
+              return <ListDefault key={list.id} list={list} />;
+            })}
           </div>
         )}
       </div>
-      {/* divider */}
-      <div className="divider m-0 p-0"></div>
       {/* lists */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <ListList lists={listsSearch} setInitialList={setInitialList} />
-      </div>
-      {/* create new */}
-      <div
-        className="btn btn-success btn-lg fixed bottom-2 right-2 z-50"
-        onClick={() => {
-          setInitialList({ items: [] });
-        }}
-      >
-        Create
+      <div className="min-h-0 flex-1 overflow-y-auto bg-base-200/40 p-2">
+        <ListList lists={listsSearch} />
       </div>
       {/* modal */}
       {initialList && (

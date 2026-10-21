@@ -52,6 +52,7 @@ export class CloneListService {
           description: item.description,
           weight: item.weight,
           category: item.category,
+          isBase: item.isBase,
           isDefault: false,
         };
         const createdItem = await this.itemRepo.upsert(cloneItem);

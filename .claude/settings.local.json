@@ -111,7 +111,8 @@
       "Bash(bluetoothctl show *)",
       "Read(//etc/udev/rules.d/**)",
       "Read(//etc/NetworkManager/conf.d/**)",
-      "Bash(sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash pci=noaer pcie_aspm=off pcie_port_pm=off\"/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash pci=noaer\"/' /etc/default/grub)"
+      "Bash(sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash pci=noaer pcie_aspm=off pcie_port_pm=off\"/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash pci=noaer\"/' /etc/default/grub)",
+      "PowerShell(Get-PnpDeviceProperty -InstanceId 'USB\\\\VID_37AD&PID_0600\\\\C03A55D2859C' -KeyName 'DEVPKEY_Device_DriverVersion','DEVPKEY_Device_DriverProvider','DEVPKEY_Device_DriverDate','DEVPKEY_Device_Manufacturer' -ErrorAction SilentlyContinue)"
     ]
   }
 }
